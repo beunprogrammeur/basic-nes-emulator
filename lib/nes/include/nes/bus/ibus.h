@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "nes/peripherals/iperipheral.h"
+#include <nes/peripherals/ipheripheral.h>
 
 namespace nes::bus
 {
