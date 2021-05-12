@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include "nes/bus/bus.h"
+#include <nes/bus/bus.h>
 
 class BusTestFixture : public testing::Test
 {

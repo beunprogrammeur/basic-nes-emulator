@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "ibus.h"
+#include "nes/bus/ibus.h"
 
 namespace nes::peripherals
 {
