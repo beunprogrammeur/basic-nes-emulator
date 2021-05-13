@@ -1,6 +1,6 @@
-#include "nes/bus/bus.h"
+#include <nes/cpu/bus/bus.h>
 
-namespace nes::bus
+namespace nes::cpu::bus
 {
 
 Bus::Bus()

@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include <nes/bus/bus.h>
+#include <nes/cpu/bus/bus.h>
 
 class BusTestFixture : public testing::Test
 {
 protected:
-    nes::bus::IBus* bus;
+    nes::cpu::bus::IBus* bus;
     
     void SetUp() override
     {
-        bus = new nes::bus::Bus;
+        bus = new nes::cpu::bus::Bus;
     }
 
     void TearDown() override

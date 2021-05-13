@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <nes/peripherals/ipheripheral.h>
 
-namespace nes::bus
+namespace nes::cpu::bus
 {
 
 class IBus

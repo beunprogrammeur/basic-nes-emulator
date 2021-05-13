@@ -1,14 +1,14 @@
 #pragma once
 
 #include <vector>
-#include "nes/bus/ibus.h"
+#include <nes/cpu/bus/ibus.h>
 
 namespace nes::peripherals
 {
     class IPeripheral;
 }
 
-namespace nes::bus
+namespace nes::cpu::bus
 {
 
 class Bus : public IBus

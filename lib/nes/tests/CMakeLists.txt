@@ -15,3 +15,5 @@ endfunction()
 
 add_test_executable(bus-tests.cpp nes-bus-lib)
 add_test_executable(memory-tests.cpp nes-peripheral-memory-lib)
+add_test_executable(instruction-decoder-tests.cpp nes-instruction-decoder-lib)
+add_test_executable(instruction-tests.cpp nes-instructions-lib)
