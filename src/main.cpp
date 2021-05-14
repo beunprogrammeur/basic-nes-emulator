@@ -1,4 +1,5 @@
 #include <iostream>
+#include <nes/cpu/instructions/instructions.h>
 
 int main(int argc, char** argv)
 {

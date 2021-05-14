@@ -19,6 +19,7 @@ nes_add_library(nes-bus-lib
 
 nes_add_library(nes-instructions-lib
     src/nes/cpu/instructions/instructions.cpp
+    src/nes/cpu/instructions/base_instruction.cpp
 )
 
 #todo: this lib depends on nes-instructions lib, how can we add lib dependencies too? CMAKE optional parameters? named parameters?
