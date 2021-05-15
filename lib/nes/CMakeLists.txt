@@ -24,6 +24,7 @@ nes_add_library(nes-instructions-lib
 
 #todo: this lib depends on nes-instructions lib, how can we add lib dependencies too? CMAKE optional parameters? named parameters?
 nes_add_library(nes-instruction-decoder-lib
+    src/nes/cpu/instructions/instructionset.cpp
     src/nes/cpu/instructions/instruction_decoder.cpp
 )
 

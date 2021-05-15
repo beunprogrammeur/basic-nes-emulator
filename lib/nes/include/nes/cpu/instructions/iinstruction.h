@@ -8,6 +8,10 @@ namespace nes::cpu::instructions
 
 enum class AddressingMode
 {
+    // some positions in the instruction matrix have no definition.
+    // http://archive.6502.org/datasheets/mos_6500_mpu_nov_1985.pdf
+    // note: the thick line ones are new CMOS OpCodes, the NES doesn't use these.
+    Unknown,
     // Used for pointing to addresses between 0x0000 and 0x00FF.
     // Because the address is so low, only one byte as opperand is needed
     // Thus saving ticks.

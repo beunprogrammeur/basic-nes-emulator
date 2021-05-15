@@ -1,6 +1,8 @@
 #include <nes/cpu/instructions/instruction_decoder.h>
 
-namespace nes::instructions
+namespace nes::cpu::instructions
 {
+
+    
 
 }

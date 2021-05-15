@@ -9,401 +9,394 @@ namespace nes::cpu::instructions
 //
 
 // Add memory to accumulator with carry
-class ADSInstruction : BaseInstruction
+class ADCInstruction : public BaseInstruction
 {
 public:
-    ADSInstruction(IInstructionErrorHandler& handler);
+    ADCInstruction(IInstructionErrorHandler& handler);
 };
 
 // "AND" memory with accumulator
-class ANDInstruction : BaseInstruction
+class ANDInstruction : public BaseInstruction
 {
 public:
     ANDInstruction(IInstructionErrorHandler& handler);
 };
 
 // Shift left one bit (memory or accumulator)
-class ASLInstruction : BaseInstruction
+class ASLInstruction : public BaseInstruction
 {
 public:
     ASLInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on carry clear
-class BCCInstruction : BaseInstruction
+class BCCInstruction : public BaseInstruction
 {
 public:
     BCCInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on carry set
-class BCSInstruction : BaseInstruction
+class BCSInstruction : public BaseInstruction
 {
 public:
     BCSInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on result zero
-class BEQInstruction : BaseInstruction
+class BEQInstruction : public BaseInstruction
 {
 public:
     BEQInstruction(IInstructionErrorHandler& handler);
 };
 
 // Test bits in memory with accumulator
-class BITInstruction : BaseInstruction
+class BITInstruction : public BaseInstruction
 {
 public:
     BITInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on result minus
-class BMIInstruction : BaseInstruction
+class BMIInstruction : public BaseInstruction
 {
 public:
     BMIInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on result not zero
-class BNEInstruction : BaseInstruction
+class BNEInstruction : public BaseInstruction
 {
 public:
     BNEInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on result plus
-class BPLInstruction : BaseInstruction
+class BPLInstruction : public BaseInstruction
 {
 public:
     BPLInstruction(IInstructionErrorHandler& handler);
 };
 
 // Force break
-class BRKInstruction : BaseInstruction
+class BRKInstruction : public BaseInstruction
 {
 public:
     BRKInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on overflow clear
-class BVCInstruction : BaseInstruction
+class BVCInstruction : public BaseInstruction
 {
 public:
     BVCInstruction(IInstructionErrorHandler& handler);
 };
 
 // Branch on overflow set
-class BVSInstruction : BaseInstruction
+class BVSInstruction : public BaseInstruction
 {
 public:
     BVSInstruction(IInstructionErrorHandler& handler);
 };
 
 // Clear carry flag
-class CLCInstruction : BaseInstruction
+class CLCInstruction : public BaseInstruction
 {
 public:
     CLCInstruction(IInstructionErrorHandler& handler);
 };
 
 // Clear decimal mode
-class CLDInstruction : BaseInstruction
+class CLDInstruction : public BaseInstruction
 {
 public:
     CLDInstruction(IInstructionErrorHandler& handler);
 };
 
 // Clear interrupt disable bit
-class CLIInstruction : BaseInstruction
+class CLIInstruction : public BaseInstruction
 {
 public:
     CLIInstruction(IInstructionErrorHandler& handler);
 };
 
 // Clear overflow flag
-class CLVInstruction : BaseInstruction
+class CLVInstruction : public BaseInstruction
 {
 public:
     CLVInstruction(IInstructionErrorHandler& handler);
 };
 
 // Compare memory and accumulator
-class CMPInstruction : BaseInstruction
+class CMPInstruction : public BaseInstruction
 {
 public:
     CMPInstruction(IInstructionErrorHandler& handler);
 };
 
 // Compare memory and index X
-class CPXInstruction : BaseInstruction
+class CPXInstruction : public BaseInstruction
 {
 public:
     CPXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Compare memory and index Y
-class CPYInstruction : BaseInstruction
+class CPYInstruction : public BaseInstruction
 {
 public:
     CPYInstruction(IInstructionErrorHandler& handler);
 };
 
 // Decrement memory by one
-class DECInstruction : BaseInstruction
+class DECInstruction : public BaseInstruction
 {
 public:
     DECInstruction(IInstructionErrorHandler& handler);
 };
 
 // Decrement index X by one
-class DEXInstruction : BaseInstruction
+class DEXInstruction : public BaseInstruction
 {
 public:
     DEXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Decrement index Y by one
-class DEYInstruction : BaseInstruction
+class DEYInstruction : public BaseInstruction
 {
 public:
     DEYInstruction(IInstructionErrorHandler& handler);
 };
 
 // "Exclusive or" memory with accumulator
-class EORInstruction : BaseInstruction
+class EORInstruction : public BaseInstruction
 {
 public:
     EORInstruction(IInstructionErrorHandler& handler);
 };
 
 // Increment memory by one
-class INCInstruction : BaseInstruction
+class INCInstruction : public BaseInstruction
 {
 public:
     INCInstruction(IInstructionErrorHandler& handler);
 };
 
 // Increment index X by one
-class INXInstruction : BaseInstruction
+class INXInstruction : public BaseInstruction
 {
 public:
     INXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Increment index Y by one
-class INYInstruction : BaseInstruction
+class INYInstruction : public BaseInstruction
 {
 public:
     INYInstruction(IInstructionErrorHandler& handler);
 };
 
 // Jump to new location
-class JMPInstruction : BaseInstruction
+class JMPInstruction : public BaseInstruction
 {
 public:
     JMPInstruction(IInstructionErrorHandler& handler);
 };
 
 // Jump to new location saving return address
-class JSRInstruction : BaseInstruction
+class JSRInstruction : public BaseInstruction
 {
 public:
     JSRInstruction(IInstructionErrorHandler& handler);
 };
 
 // Load accumulator with memory
-class LDAInstruction : BaseInstruction
+class LDAInstruction : public BaseInstruction
 {
 public:
     LDAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Load index X with memory
-class LDXInstruction : BaseInstruction
+class LDXInstruction : public BaseInstruction
 {
 public:
     LDXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Load index y with memory
-class LDYInstruction : BaseInstruction
+class LDYInstruction : public BaseInstruction
 {
 public:
     LDYInstruction(IInstructionErrorHandler& handler);
 };
 
 // Shift one bit right (memory or accumulator)
-class LSRInstruction : BaseInstruction
+class LSRInstruction : public BaseInstruction
 {
 public:
     LSRInstruction(IInstructionErrorHandler& handler);
 };
 
 // No operation
-class NOPInstruction : BaseInstruction
+class NOPInstruction : public BaseInstruction
 {
 public:
     NOPInstruction(IInstructionErrorHandler& handler);
 };
 
 // "OR" memory with accumulator
-class ORAInstruction : BaseInstruction
+class ORAInstruction : public BaseInstruction
 {
 public:
     ORAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Push accumulator on stack
-class PHAInstruction : BaseInstruction
+class PHAInstruction : public BaseInstruction
 {
 public:
     PHAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Push processor status on stack
-class PHPInstruction : BaseInstruction
+class PHPInstruction : public BaseInstruction
 {
 public:
     PHPInstruction(IInstructionErrorHandler& handler);
 };
 
 // Pull accumulator from stack
-class PLAInstruction : BaseInstruction
+class PLAInstruction : public BaseInstruction
 {
 public:
     PLAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Pull processor status from stack
-class PLPInstruction : BaseInstruction
+class PLPInstruction : public BaseInstruction
 {
 public:
     PLPInstruction(IInstructionErrorHandler& handler);
 };
 
 // Rotate one bit left (memory or accumulator)
-class ROLInstruction : BaseInstruction
+class ROLInstruction : public BaseInstruction
 {
 public:
     ROLInstruction(IInstructionErrorHandler& handler);
 };
 
 // Rotate one bit right (memory or accumulator)
-class RORInstruction : BaseInstruction
+class RORInstruction : public BaseInstruction
 {
 public:
     RORInstruction(IInstructionErrorHandler& handler);
 };
 
 // Return from interrupt
-class RTIInstruction : BaseInstruction
+class RTIInstruction : public BaseInstruction
 {
 public:
     RTIInstruction(IInstructionErrorHandler& handler);
 };
 
 // Return from subroutine
-class RTSInstruction : BaseInstruction
+class RTSInstruction : public BaseInstruction
 {
 public:
     RTSInstruction(IInstructionErrorHandler& handler);
 };
 
 // Subtract memory from accumulator with borrow
-class SBCInstruction : BaseInstruction
+class SBCInstruction : public BaseInstruction
 {
 public:
     SBCInstruction(IInstructionErrorHandler& handler);
 };
 
 // Set carry flag
-class SECInstruction : BaseInstruction
+class SECInstruction : public BaseInstruction
 {
 public:
     SECInstruction(IInstructionErrorHandler& handler);
 };
 
 // Set decimal mode
-class SEDInstruction : BaseInstruction
+class SEDInstruction : public BaseInstruction
 {
 public:
     SEDInstruction(IInstructionErrorHandler& handler);
 };
 
 // Set interrupt disable status
-class SEIInstruction : BaseInstruction
+class SEIInstruction : public BaseInstruction
 {
 public:
     SEIInstruction(IInstructionErrorHandler& handler);
 };
 
 // Store accumulator in memory
-class STAInstruction : BaseInstruction
+class STAInstruction : public BaseInstruction
 {
 public:
     STAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Store index X in memory
-class STXInstruction : BaseInstruction
+class STXInstruction : public BaseInstruction
 {
 public:
     STXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Store index Y in memory
-class STYInstruction : BaseInstruction
+class STYInstruction : public BaseInstruction
 {
 public:
     STYInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer accumulator to index X
-class TAXInstruction : BaseInstruction
+class TAXInstruction : public BaseInstruction
 {
 public:
     TAXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer accumulator to index Y
-class TAYInstruction : BaseInstruction
+class TAYInstruction : public BaseInstruction
 {
 public:
     TAYInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer stack pointer to index X
-class TSXInstruction : BaseInstruction
+class TSXInstruction : public BaseInstruction
 {
 public:
     TSXInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer index X to accumulator
-class TXAInstruction : BaseInstruction
+class TXAInstruction : public BaseInstruction
 {
 public:
     TXAInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer index X to stack register
-class TXSInstruction : BaseInstruction
+class TXSInstruction : public BaseInstruction
 {
 public:
     TXSInstruction(IInstructionErrorHandler& handler);
 };
 
 // Transfer index Y to accumulator
-class TYAInstruction : BaseInstruction
+class TYAInstruction : public BaseInstruction
 {
 public:
     TYAInstruction(IInstructionErrorHandler& handler);
 };
-
-//
-// OpCode implementations
-//
-
-
-
 }

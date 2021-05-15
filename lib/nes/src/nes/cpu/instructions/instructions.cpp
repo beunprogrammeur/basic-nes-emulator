@@ -3,7 +3,7 @@
 namespace nes::cpu::instructions
 {
 // constructors
-ADSInstruction::ADSInstruction(IInstructionErrorHandler& handler) : BaseInstruction::BaseInstruction("ADS", handler) {}
+ADCInstruction::ADCInstruction(IInstructionErrorHandler& handler) : BaseInstruction::BaseInstruction("ADC", handler) {}
 ANDInstruction::ANDInstruction(IInstructionErrorHandler& handler) : BaseInstruction::BaseInstruction("AND", handler) {}
 ASLInstruction::ASLInstruction(IInstructionErrorHandler& handler) : BaseInstruction::BaseInstruction("ASL", handler) {}
 BCCInstruction::BCCInstruction(IInstructionErrorHandler& handler) : BaseInstruction::BaseInstruction("BCC", handler) {}

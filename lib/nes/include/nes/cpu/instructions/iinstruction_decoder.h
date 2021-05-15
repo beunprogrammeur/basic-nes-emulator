@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nes::instructions
+namespace nes::cpu::instructions
 {
 
 class IInstructionDecoder

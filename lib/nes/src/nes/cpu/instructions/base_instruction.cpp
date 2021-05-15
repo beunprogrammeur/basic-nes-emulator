@@ -23,6 +23,7 @@ namespace nes::cpu::instructions
             case AddressingMode::Relative:        ticks = Relative(registers, bus);        break;
             case AddressingMode::IndexedIndirect: ticks = IndexedIndirect(registers, bus); break;
             case AddressingMode::IndirectIndexed: ticks = IndirectIndexed(registers, bus); break;
+            case AddressingMode::Unknown:         ticks = Unknown(registers, bus);         break;
         }
 
         return ticks;
@@ -40,6 +41,6 @@ namespace nes::cpu::instructions
     uint8_t BaseInstruction::Relative(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)        { _handler.invalidMode(*this, AddressingMode::Relative);        return 0; }
     uint8_t BaseInstruction::IndexedIndirect(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndexedIndirect); return 0; }
     uint8_t BaseInstruction::IndirectIndexed(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndirectIndexed); return 0; }
-
+    uint8_t BaseInstruction::Unknown(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)         { _handler.invalidMode(*this, AddressingMode::Unknown);         return 0; }
 
 }

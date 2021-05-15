@@ -21,6 +21,7 @@ private:
     virtual uint8_t Relative(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
     virtual uint8_t IndexedIndirect(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
     virtual uint8_t IndirectIndexed(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
+    virtual uint8_t Unknown(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
     
 
 public:
