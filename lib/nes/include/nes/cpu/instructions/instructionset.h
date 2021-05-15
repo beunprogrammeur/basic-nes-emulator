@@ -64,9 +64,10 @@ private:
     TXSInstruction _txs;
     TYAInstruction _tya;
     BaseInstruction _unk;
-    IInstruction* _instructionMatrix[256];
+    BaseInstruction* _instructionMatrix[256];
+    AddressingMode _addressingModeMatrix[256];
 public:
     InstructionSet(IInstructionErrorHandler& handler);
-    virtual IInstruction& get(const uint8_t index) override { return *_instructionMatrix[index]; }
+    virtual IInstruction& get(const uint8_t index) override;
 };
 }

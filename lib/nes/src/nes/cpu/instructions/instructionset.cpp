@@ -78,7 +78,32 @@ InstructionSet::InstructionSet(IInstructionErrorHandler& handler)
         &_cpx, &_sbc, &_unk, &_unk, &_cpx, &_sbc, &_inc, &_unk, &_inx, &_sbc, &_nop, &_unk, &_cpx, &_sbc, &_inc, &_unk, 
         &_beq, &_sbc, &_unk, &_unk, &_unk, &_sbc, &_inc, &_unk, &_sed, &_sbc, &_unk, &_unk, &_unk, &_sbc, &_inc, &_unk, 
     }
+    , _addressingModeMatrix{
+        AddressingMode::IMP, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::ACC, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::ACC, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::ABS, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::ACC, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::ACC, AddressingMode::UNK, AddressingMode::ABSX,  AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::IMP, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::ACC, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::UNK,   AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::IMP, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::ACC, AddressingMode::UNK, AddressingMode::IABS,  AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::IABSX, AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZPY, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::IMM, AddressingMode::IINDX, AddressingMode::IMM,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZPY, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABSX,  AddressingMode::ABSX, AddressingMode::ABSY, AddressingMode::ZP,              
+        AddressingMode::IMM, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::UNK,   AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+        AddressingMode::IMM, AddressingMode::IINDX, AddressingMode::UNK,  AddressingMode::UNK, AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP,  AddressingMode::ZP, AddressingMode::IMP, AddressingMode::IMM,  AddressingMode::IMP, AddressingMode::UNK, AddressingMode::ABS,   AddressingMode::ABS,  AddressingMode::ABS,  AddressingMode::ZP,              
+        AddressingMode::REL, AddressingMode::IINDY, AddressingMode::IIND, AddressingMode::UNK, AddressingMode::UNK, AddressingMode::ZPX, AddressingMode::ZPX, AddressingMode::ZP, AddressingMode::IMP, AddressingMode::ABSY, AddressingMode::IMP, AddressingMode::UNK, AddressingMode::UNK,   AddressingMode::ABSX, AddressingMode::ABSX, AddressingMode::ZP,              
+    }
 {
+}
+
+IInstruction& InstructionSet::get(const uint8_t index)
+{
+    auto* instruction = _instructionMatrix[index];
+    instruction->setMode(_addressingModeMatrix[index]);
+    return *instruction;
 }
 
 }

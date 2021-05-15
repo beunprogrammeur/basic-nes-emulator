@@ -3,44 +3,50 @@
 namespace nes::cpu::instructions
 {
     BaseInstruction::BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler)
-        :  _name(name), _handler(instructionErrorHandler)
+        :  _name(name), _mode(AddressingMode::UNK), _handler(instructionErrorHandler)
     {
     }
 
-    uint8_t BaseInstruction::execute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, AddressingMode mode)
+    uint8_t BaseInstruction::execute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
     {
         uint8_t ticks = 0;
-        switch(mode)
+        switch(_mode)
         {
-            case AddressingMode::ZeroPage:        ticks = ZeroPage(registers, bus);        break;
-            case AddressingMode::IndexedZeroPage: ticks = IndexedZeroPage(registers, bus); break;
-            case AddressingMode::Absolute:        ticks = Absolute(registers, bus);        break;
-            case AddressingMode::IndexedAbsolute: ticks = IndexedAbsolute(registers, bus); break;
-            case AddressingMode::Indirect:        ticks = Indirect(registers, bus);        break;
-            case AddressingMode::Implied:         ticks = Implied(registers, bus);         break;
-            case AddressingMode::Accumulator:     ticks = Accumulator(registers, bus);     break;
-            case AddressingMode::Immediate:       ticks = Immediate(registers, bus);       break;
-            case AddressingMode::Relative:        ticks = Relative(registers, bus);        break;
-            case AddressingMode::IndexedIndirect: ticks = IndexedIndirect(registers, bus); break;
-            case AddressingMode::IndirectIndexed: ticks = IndirectIndexed(registers, bus); break;
-            case AddressingMode::Unknown:         ticks = Unknown(registers, bus);         break;
+            case AddressingMode::ABS:   ticks = ABS(registers,   bus); break;
+            case AddressingMode::ABSX:  ticks = ABSX(registers,  bus); break;
+            case AddressingMode::ABSY:  ticks = ABSY(registers,  bus); break;
+            case AddressingMode::ACC:   ticks = ACC(registers,   bus); break;
+            case AddressingMode::IABS:  ticks = IABS(registers,  bus); break;
+            case AddressingMode::IABSX: ticks = IABSX(registers, bus); break;
+            case AddressingMode::IIND:  ticks = IIND(registers,  bus); break;
+            case AddressingMode::IINDX: ticks = IINDX(registers, bus); break;
+            case AddressingMode::IINDY: ticks = IINDY(registers, bus); break;
+            case AddressingMode::IMM:   ticks = IMM(registers,   bus); break;
+            case AddressingMode::IMP:   ticks = IMP(registers,   bus); break;
+            case AddressingMode::REL:   ticks = REL(registers,   bus); break;
+            case AddressingMode::UNK:   ticks = UNK(registers,   bus); break;
+            case AddressingMode::ZP:    ticks = ZP(registers,    bus); break;
+            case AddressingMode::ZPX:   ticks = ZPX(registers,   bus); break;
+            case AddressingMode::ZPY:   ticks = ZPY(registers,   bus); break;
         }
 
         return ticks;
     }
 
-    // TODO: call the error handler for unsupported instruction mode use.
-    uint8_t BaseInstruction::ZeroPage(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)        { _handler.invalidMode(*this, AddressingMode::ZeroPage);        return 0; }
-    uint8_t BaseInstruction::IndexedZeroPage(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndexedZeroPage); return 0; }
-    uint8_t BaseInstruction::Absolute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)        { _handler.invalidMode(*this, AddressingMode::Absolute);        return 0; }
-    uint8_t BaseInstruction::IndexedAbsolute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndexedAbsolute); return 0; }
-    uint8_t BaseInstruction::Indirect(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)        { _handler.invalidMode(*this, AddressingMode::Indirect);        return 0; }
-    uint8_t BaseInstruction::Implied(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)         { _handler.invalidMode(*this, AddressingMode::Implied);         return 0; }
-    uint8_t BaseInstruction::Accumulator(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)     { _handler.invalidMode(*this, AddressingMode::Accumulator);     return 0; }
-    uint8_t BaseInstruction::Immediate(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)       { _handler.invalidMode(*this, AddressingMode::Immediate);       return 0; }
-    uint8_t BaseInstruction::Relative(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)        { _handler.invalidMode(*this, AddressingMode::Relative);        return 0; }
-    uint8_t BaseInstruction::IndexedIndirect(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndexedIndirect); return 0; }
-    uint8_t BaseInstruction::IndirectIndexed(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IndirectIndexed); return 0; }
-    uint8_t BaseInstruction::Unknown(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)         { _handler.invalidMode(*this, AddressingMode::Unknown);         return 0; }
-
+    uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }
+    uint8_t BaseInstruction::ABSX(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSX);  return 0; }
+    uint8_t BaseInstruction::ABSY(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSY);  return 0; }
+    uint8_t BaseInstruction::ACC(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ACC);   return 0; }
+    uint8_t BaseInstruction::IABS(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IABS);  return 0; }
+    uint8_t BaseInstruction::IABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IABSX); return 0; }
+    uint8_t BaseInstruction::IIND(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IIND);  return 0; }
+    uint8_t BaseInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IINDX); return 0; }
+    uint8_t BaseInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IINDY); return 0; }
+    uint8_t BaseInstruction::IMM(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IMM);   return 0; }
+    uint8_t BaseInstruction::IMP(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::IMP);   return 0; }
+    uint8_t BaseInstruction::REL(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::REL);   return 0; }
+    uint8_t BaseInstruction::UNK(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::UNK);   return 0; }
+    uint8_t BaseInstruction::ZP(nes::cpu::Registers&    registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ZP);    return 0; }
+    uint8_t BaseInstruction::ZPX(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ZPX);   return 0; }
+    uint8_t BaseInstruction::ZPY(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ZPY);   return 0; }
 }
