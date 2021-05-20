@@ -9,8 +9,10 @@ struct ProcessorStatusRegister
 public:
     // Negative (1 = negative)
     bool n : 1;
+    // Unused bit. do not alter.
+    bool u : 1;
     // Overflow 1 = true
-    bool v : 2;
+    bool v : 1;
     // BRK command
     bool b : 1;
     // Decimal Mode 1 = true (not used for the NES)
@@ -37,6 +39,24 @@ struct Registers
     uint16_t sp;
     // Processor status register
     ProcessorStatusRegister p;
+
+    void reset() { reset(0xfffc); } // default boot address
+    void reset(uint16_t startAddress)  { a = 0; x = 0; y = 0; pc = 0; sp = 0xfd; p.n = 0; p.u = true; p.v = false; p.b = false; p.d = false; p.i = false; p.z = false; p.c = false;}
+    bool operator==(const Registers& r) const
+    {
+        return a   == r.a   &&
+               x   == r.x   &&
+               y   == r.y   &&
+               pc  == r.pc  &&
+               p.n == r.p.n &&
+               p.u == r.p.u &&
+               p.v == r.p.v &&
+               p.b == r.p.b &&
+               p.d == r.p.d &&
+               p.i == r.p.i &&
+               p.z == r.p.z &&
+               p.c == r.p.c;
+    }
 };
 
 }

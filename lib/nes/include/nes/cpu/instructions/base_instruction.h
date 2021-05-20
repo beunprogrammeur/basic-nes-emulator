@@ -35,5 +35,6 @@ public:
     virtual uint8_t execute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) override;
     virtual const std::string& name() const         { return _name; }
     virtual void setMode(const AddressingMode mode) { _mode = mode; }
+    virtual AddressingMode getMode() const          { return _mode; }
 };
 }

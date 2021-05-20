@@ -3,7 +3,6 @@ include(../../../GoogleTest.cmake)
 
 function(add_test_executable filename lib) # add source files after test file, they will be added automatically
     get_filename_component(testname ${filename} NAME_WE)
-    message("file noext ${testname}")
     add_executable(${testname} ${filename})
 
     target_link_libraries(${testname} PRIVATE ${GMOCK_MAIN_PATH})

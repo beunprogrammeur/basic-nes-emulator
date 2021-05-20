@@ -3,6 +3,8 @@
 #include <nes/cpu/instructions/iinstruction_error_handler.h>
 #include <nes/cpu/instructions/iinstruction.h>
 #include <nes/cpu/instructions/instructionset.h>
+#include <nes/cpu/bus/ibus.h>
+
 namespace nes::cpu::instructions
 {
 
@@ -19,6 +21,11 @@ public:
 class InstructionDecoder : public IInstructionDecoder
 {
 private:
-    AddressingMode _modeMatrix[256];
+    IInstructionSet& _instructionSet;
+    bus::IBus& _bus;
+    Registers& _registers;    
+public:
+    // TODO: interact with the (to be defined) oscillator
+    // Add this to the IInstructionDecoder interface.
 };
 }

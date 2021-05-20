@@ -44,6 +44,7 @@ enum class AddressingMode
 
 class IInstruction
 {
+public:
     // executes the current instruction.
     // returns the number of ticks this instruction costs
     virtual uint8_t execute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) = 0;

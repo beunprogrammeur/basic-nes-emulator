@@ -28,5 +28,6 @@ nes_add_library(nes-instruction-decoder-lib
     src/nes/cpu/instructions/instruction_decoder.cpp
 )
 
+
 # TODO: adding tests to the build in required
 add_subdirectory(tests)
