@@ -33,6 +33,11 @@ namespace nes::cpu::instructions
         return ticks;
     }
 
+    void BaseInstruction::push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    {
+        
+    }
+
     uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }
     uint8_t BaseInstruction::ABSX(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSX);  return 0; }
     uint8_t BaseInstruction::ABSY(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSY);  return 0; }

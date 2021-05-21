@@ -6,7 +6,7 @@
 #include <vector>
 #include <nes/cpu/instructions/instructionset.h>
 
-
+#include <type_traits>
 
 
 using namespace nes::cpu::instructions;
@@ -61,6 +61,39 @@ protected:
         handler = nullptr;
         bus     = nullptr;
     }
+
+    void compare(const nes::cpu::Registers& expected)
+    {
+        EXPECT_EQ(expected.a  , registers.a  ) << "expected accumulator to be " << expected.a   << " but it was " << registers.a  ;
+        EXPECT_EQ(expected.x  , registers.x  ) << "expected index x to be " << expected.x   << " but it was " << registers.x  ;
+        EXPECT_EQ(expected.y  , registers.y  ) << "expected index y to be " << expected.y   << " but it was " << registers.y  ;
+        EXPECT_EQ(expected.pc , registers.pc ) << "expected program counter to be " << expected.pc  << " but it was " << registers.pc ;
+        EXPECT_EQ(expected.p.n, registers.p.n) << "expected negative flag to be " << expected.p.n << " but it was " << registers.p.n;
+        EXPECT_EQ(expected.p.u, registers.p.u) << "expected unused flag to be " << expected.p.u << " but it was " << registers.p.u;
+        EXPECT_EQ(expected.p.v, registers.p.v) << "expected overflow flag to be " << expected.p.v << " but it was " << registers.p.v;
+        EXPECT_EQ(expected.p.b, registers.p.b) << "expected break flag to be " << expected.p.b << " but it was " << registers.p.b;
+        EXPECT_EQ(expected.p.d, registers.p.d) << "expected decimal flag to be " << expected.p.d << " but it was " << registers.p.d;
+        EXPECT_EQ(expected.p.i, registers.p.i) << "expected IRQ flag to be " << expected.p.i << " but it was " << registers.p.i;
+        EXPECT_EQ(expected.p.z, registers.p.z) << "expected zero flag to be " << expected.p.z << " but it was " << registers.p.z;
+        EXPECT_EQ(expected.p.c, registers.p.c) << "expected carry flag to be " << expected.p.c << " but it was " << registers.p.c;
+    }
+
+    void execute(IInstruction& instruction, int expectedTicks, bool handlerCalled = false)
+    {
+        EXPECT_EQ(expectedTicks, instruction.execute(registers, *bus));
+        EXPECT_EQ(handlerCalled, handler->raised());
+    }
+
+    template<typename T>
+    void run(AddressingMode mode, int ticks, Registers& expected, bool handlerCalled = false)
+    {
+        static_assert(std::is_base_of<IInstruction, T>::value, "T must be derived of IInstruction");
+        auto instruction = T(*handler);
+        instruction.setMode(mode);
+
+        execute(instruction, ticks, handlerCalled);
+        compare(expected);
+    }
 };
 
 
@@ -69,51 +102,27 @@ protected:
 
 TEST_F(InstructionTestFixture, NOPTest)
 {
-    NOPInstruction instruction(*handler);
-    instruction.setMode(AddressingMode::IMP);
-
     auto expected = registers;
     expected.pc++;
-    auto ticks = instruction.execute(registers, *bus);
-
-    ASSERT_EQ(1, ticks);
-    ASSERT_EQ(expected, registers);
-    ASSERT_FALSE(handler->raised());
-    
+    run<NOPInstruction>(AddressingMode::IMP, 1, expected);
 }
 
 TEST_F(InstructionTestFixture, CLCTest)
 {
-    CLCInstruction instruction(*handler);
-    instruction.setMode(AddressingMode::IMP);
-
     registers.p.c = true;
     auto expected = registers;
     expected.pc++;
     expected.p.c = false;
-    
-    auto ticks = instruction.execute(registers, *bus);
-
-    ASSERT_EQ(2, ticks);
-    ASSERT_EQ(expected, registers);
-    ASSERT_FALSE(handler->raised());
+    run<CLCInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, CLDTest)
 {
-    CLDInstruction instruction(*handler);
-    instruction.setMode(AddressingMode::IMP);
-
     registers.p.d = true;
     auto expected = registers;
     expected.pc++;
     expected.p.d = false;
-    
-    auto ticks = instruction.execute(registers, *bus);
-
-    ASSERT_EQ(2, ticks);
-    ASSERT_EQ(expected, registers);
-    ASSERT_FALSE(handler->raised());
+    run<CLDInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, BRKTest)
@@ -129,6 +138,37 @@ TEST_F(InstructionTestFixture, ORATest)
 TEST_F(InstructionTestFixture, XXXTest)
 {
     FAIL() << "Not yet implemented";
+}
+
+TEST_F(InstructionTestFixture, ASLAccumulatorTest)
+{
+    registers.a = 0;
+    auto expected = registers;
+    expected.pc++;
+    expected.p.z = true;
+    run<ASLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 10;
+    expected = registers;
+    expected.pc++;
+    expected.a <<= 1;
+    expected.p.z = false;
+    run<ASLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 64;
+    expected = registers;
+    expected.pc++;
+    expected.a <<= 1;
+    expected.p.n = true;
+    run<ASLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 129;
+    expected = registers;
+    expected.pc++;
+    expected.a = 2;
+    expected.p.c = true;
+    expected.p.n = false;
+    run<ASLInstruction>(AddressingMode::ACC, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, ASLTest)
@@ -163,7 +203,36 @@ TEST_F(InstructionTestFixture, BITTest)
 
 TEST_F(InstructionTestFixture, ROLTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.a = 0x01;
+    auto expected = registers;
+    expected.pc++;
+    expected.a <<= 1;
+    run<ROLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.p.c = true;
+    expected = registers;
+    expected.pc++;
+    expected.a <<= 1;
+    expected.a |= 1; // the carry flag is now in bit 0
+    expected.p.c = false;
+    run<ROLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.reset();
+    registers.a = 0x80;
+    expected = registers;
+    expected.pc++;
+    expected.a = 0;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ROLInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.reset();
+    registers.a = 0x40;
+    expected = registers;
+    expected.pc++;
+    expected.p.n = true;
+    expected.a <<= 1;
+    run<ROLInstruction>(AddressingMode::ACC, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, PLPTest)
@@ -178,7 +247,14 @@ TEST_F(InstructionTestFixture, BMITest)
 
 TEST_F(InstructionTestFixture, SECTest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    expected.p.c = true;
+    expected.pc++;
+    run<SECInstruction>(AddressingMode::IMP, 2, expected);
+
+    expected.p.c = true;
+    expected.pc++;
+    run<SECInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, RTITest)
@@ -189,6 +265,40 @@ TEST_F(InstructionTestFixture, RTITest)
 TEST_F(InstructionTestFixture, EORTest)
 {
     FAIL() << "Not yet implemented";
+}
+
+TEST_F(InstructionTestFixture, LSRAccumulatorTest)
+{
+    registers.a = 0x08;
+    auto expected = registers;
+    expected.pc++;
+    expected.a >>= 1;
+    run<LSRInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 0x09;
+    expected = registers;
+    expected.pc++;
+    expected.a >>=1;
+    expected.p.c = true;
+    run<LSRInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc++;
+    expected.p.c = false;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 0x01;
+    expected = registers;
+    expected.pc++;
+    expected.a >>=1;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ACC, 2, expected);
+
+    // we don't have to test the negative flag. shifting to the right will never result in
+    // a negative flag. if it actually does (it shouldn't) then one of the above tests will fail for us.
 }
 
 TEST_F(InstructionTestFixture, LSRTest)
@@ -213,7 +323,11 @@ TEST_F(InstructionTestFixture, BVCTest)
 
 TEST_F(InstructionTestFixture, CLITest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    registers.p.i = true;
+    expected.p.i = false;
+    expected.pc++;
+    run<CLIInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, RTSTest)
@@ -243,7 +357,11 @@ TEST_F(InstructionTestFixture, BVSTest)
 
 TEST_F(InstructionTestFixture, SEITest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    registers.p.i = false;
+    expected.p.i = true;
+    expected.pc++;
+    run<SEIInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, STATest)
@@ -263,12 +381,50 @@ TEST_F(InstructionTestFixture, STXTest)
 
 TEST_F(InstructionTestFixture, DEYTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.y = 15;
+
+    auto expected = registers;
+    expected.y--;
+    expected.pc++;
+    run<DEYInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.y  = 1;
+    expected.y   = 0;
+    expected.p.z = true;
+    expected.p.n = false;
+    expected.pc++;
+    run<DEYInstruction>(AddressingMode::IMP, 2, expected);
+
+
+    expected.p.z = false;
+    expected.p.n = true;
+    expected.y = 255;
+    expected.pc++;
+    run<DEYInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, TXATest)
 {
-    FAIL() << "Not yet implemented";
+    registers.x = 15;
+    auto expected = registers;
+    expected.a = registers.x;
+    expected.pc++;
+    run<TXAInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.x = 0;
+    expected = registers;
+    expected.pc++;
+    expected.a = registers.x;
+    expected.p.z = true;
+    run<TXAInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.x = 128;
+    expected = registers;
+    expected.pc++;
+    expected.a = registers.x;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<TXAInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, BCCTest)
@@ -278,7 +434,26 @@ TEST_F(InstructionTestFixture, BCCTest)
 
 TEST_F(InstructionTestFixture, TYATest)
 {
-    FAIL() << "Not yet implemented";
+    registers.y = 15;
+    auto expected = registers;
+    expected.a = registers.y;
+    expected.pc++;
+    run<TYAInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.y = 0;
+    expected = registers;
+    expected.pc++;
+    expected.a = registers.y;
+    expected.p.z = true;
+    run<TYAInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.y = 128;
+    expected = registers;
+    expected.pc++;
+    expected.a = registers.y;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<TYAInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, TXSTest)
@@ -303,12 +478,60 @@ TEST_F(InstructionTestFixture, LDXTest)
 
 TEST_F(InstructionTestFixture, TAYTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.a = 15;
+
+    auto expected = registers;
+    expected.pc++;
+    expected.y = expected.a;
+    run<TAYInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.a = 255;
+    expected = registers;
+
+    expected.pc++;
+    expected.a = 255;
+    expected.y = 255;
+    expected.p.n = true;
+    run<TAYInstruction>(AddressingMode::IMP, 2, expected);
+
+
+    registers.a = 0;
+    
+    expected = registers;
+    expected.pc++;
+    expected.y = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<TAYInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, TAXTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.a = 15;
+
+    auto expected = registers;
+    expected.pc++;
+    expected.x = expected.a;
+    run<TAXInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.a = 255;
+    expected = registers;
+
+    expected.pc++;
+    expected.a = 255;
+    expected.x = 255;
+    expected.p.n = true;
+    run<TAXInstruction>(AddressingMode::IMP, 2, expected);
+
+
+    registers.a = 0;
+    
+    expected = registers;
+    expected.pc++;
+    expected.x = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<TAXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, BCSTest)
@@ -318,12 +541,35 @@ TEST_F(InstructionTestFixture, BCSTest)
 
 TEST_F(InstructionTestFixture, CLVTest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    registers.p.v = true;
+    expected.p.v = false;
+    expected.pc++;
+    run<CLVInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, TSXTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.sp = 15;
+    auto expected = registers;
+    expected.pc++;
+    expected.x = registers.sp;
+    run<TSXInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.sp = 0;
+    expected = registers;
+    expected.pc++;
+    expected.x = registers.sp;
+    expected.p.z = true;
+    run<TSXInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.sp = 128;
+    expected = registers;
+    expected.pc++;
+    expected.x = registers.sp;
+    expected.p.n = true;
+    expected.p.z = false;
+    run<TSXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, CPYTest)
@@ -343,12 +589,52 @@ TEST_F(InstructionTestFixture, DECTest)
 
 TEST_F(InstructionTestFixture, INYTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.y = 15;
+
+    // test normal behaviour. x should be incremented
+    auto expected = registers;
+    expected.y++;
+    expected.pc++;
+    run<INYInstruction>(AddressingMode::IMP, 2, expected);
+
+    // negative flag should be set if bit 7 is high
+    registers.y = 127;
+    expected.y = 128;
+    expected.p.n = true;
+    expected.pc++;
+    run<INYInstruction>(AddressingMode::IMP, 2, expected);
+
+    // zero flag should be set if the entire value of x is zero
+    registers.y = 255;
+    expected.y = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    expected.pc++;
+    run<INYInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, DEXTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.x = 15;
+
+    auto expected = registers;
+    expected.x--;
+    expected.pc++;
+    run<DEXInstruction>(AddressingMode::IMP, 2, expected);
+
+    registers.x  = 1;
+    expected.x   = 0;
+    expected.p.z = true;
+    expected.p.n = false;
+    expected.pc++;
+    run<DEXInstruction>(AddressingMode::IMP, 2, expected);
+
+
+    expected.p.z = false;
+    expected.p.n = true;
+    expected.x = 255;
+    expected.pc++;
+    run<DEXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, BNETest)
@@ -373,7 +659,28 @@ TEST_F(InstructionTestFixture, INCTest)
 
 TEST_F(InstructionTestFixture, INXTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.x = 15;
+
+    // test normal behaviour. x should be incremented
+    auto expected = registers;
+    expected.x++;
+    expected.pc++;
+    run<INXInstruction>(AddressingMode::IMP, 2, expected);
+
+    // negative flag should be set if bit 7 is high
+    registers.x = 127;
+    expected.x = 128;
+    expected.p.n = true;
+    expected.pc++;
+    run<INXInstruction>(AddressingMode::IMP, 2, expected);
+
+    // zero flag should be set if the entire value of x is zero
+    registers.x = 255;
+    expected.x = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    expected.pc++;
+    run<INXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, BEQTest)
@@ -383,5 +690,12 @@ TEST_F(InstructionTestFixture, BEQTest)
 
 TEST_F(InstructionTestFixture, SEDTest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    expected.p.d = true;
+    expected.pc++;
+    run<SEDInstruction>(AddressingMode::IMP, 2, expected);
+
+    expected.p.d = true;
+    expected.pc++;
+    run<SEDInstruction>(AddressingMode::IMP, 2, expected);
 }

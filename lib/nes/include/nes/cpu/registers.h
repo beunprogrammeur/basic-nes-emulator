@@ -35,8 +35,8 @@ struct Registers
     uint8_t y;
     // 16 bits program counter (pch, pcl)
     uint16_t pc;
-    // 9 bits stack pointer
-    uint16_t sp;
+    // 8 bits stack pointer, wraps around. no stack overflow detection.
+    uint8_t sp;
     // Processor status register
     ProcessorStatusRegister p;
 
