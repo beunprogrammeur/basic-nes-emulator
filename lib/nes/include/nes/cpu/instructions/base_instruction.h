@@ -28,8 +28,10 @@ private:
     virtual uint8_t ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
     virtual uint8_t ZPY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
 
+protected:
     // stack operations
-    void push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+    void    push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+    uint8_t pull(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
 
 public:
     BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler);

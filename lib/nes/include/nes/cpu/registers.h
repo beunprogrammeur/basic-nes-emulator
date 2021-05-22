@@ -23,6 +23,18 @@ public:
     bool z : 1;
     // Carry 1 = true
     bool c : 1;
+
+    uint8_t toByte() const { return n << 7 | u << 6 | v << 5 | b << 4 | d << 3 | i << 2 | z << 1 | c; }
+    void    fromByte(uint8_t data) { 
+        n = data & (1 << 7); 
+        u = data & (1 << 6);
+        v = data & (1 << 5);
+        b = data & (1 << 4);
+        d = data & (1 << 3);
+        i = data & (1 << 2);
+        z = data & (1 << 1);
+        c = data & (1 << 0);
+    }
 };
 
 struct Registers
@@ -42,21 +54,6 @@ struct Registers
 
     void reset() { reset(0xfffc); } // default boot address
     void reset(uint16_t startAddress)  { a = 0; x = 0; y = 0; pc = 0; sp = 0xfd; p.n = 0; p.u = true; p.v = false; p.b = false; p.d = false; p.i = false; p.z = false; p.c = false;}
-    bool operator==(const Registers& r) const
-    {
-        return a   == r.a   &&
-               x   == r.x   &&
-               y   == r.y   &&
-               pc  == r.pc  &&
-               p.n == r.p.n &&
-               p.u == r.p.u &&
-               p.v == r.p.v &&
-               p.b == r.p.b &&
-               p.d == r.p.d &&
-               p.i == r.p.i &&
-               p.z == r.p.z &&
-               p.c == r.p.c;
-    }
 };
 
 }

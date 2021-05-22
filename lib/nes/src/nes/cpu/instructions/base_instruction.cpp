@@ -33,9 +33,16 @@ namespace nes::cpu::instructions
         return ticks;
     }
 
-    void BaseInstruction::push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    void    BaseInstruction::push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
     {
-        
+        bus.write(0x0100 | registers.sp, value);
+        registers.sp--; // The stack starts at the end of a page, and grows towards the beginning of the page.
+    }
+
+    uint8_t BaseInstruction::pull(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+    {
+        registers.sp++; // stack pointer points towards the next 'available' space.
+        return bus.read(0x0100 | registers.sp);
     }
 
     uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }

@@ -65,7 +65,19 @@ TYAInstruction::TYAInstruction(IInstructionErrorHandler& handler) : BaseInstruct
 // BRK
 //
 
-uint8_t BRKInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BRKInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    constexpr uint16_t IRQInterruptVector = 0xfffe;
+
+    push(registers, bus, registers.pc & 0xff);
+    push(registers, bus, registers.pc >> 8);
+    push(registers, bus, registers.p.toByte());
+
+    registers.pc = IRQInterruptVector;
+    registers.p.b = true;
+
+    return 7;
+}
 
 //
 // ORA
@@ -284,7 +296,18 @@ uint8_t ADCInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus
 //
 
 uint8_t RORInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t RORInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t RORInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto carry = registers.a & 1;
+    registers.pc++;
+    registers.a >>= 1;
+    registers.a |= registers.p.c << 7;
+    registers.p.z = registers.a == 0;
+    registers.p.c = carry;
+    registers.p.n = (registers.a & 0x80) > 0;
+    return 2;
+}
+
 uint8_t RORInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
 uint8_t RORInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
 uint8_t RORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
@@ -389,7 +412,12 @@ uint8_t TYAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // TXS
 //
 
-uint8_t TXSInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t TXSInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.pc++;
+    registers.sp = registers.x;
+    return 2;
+}
 
 //
 // LDY

@@ -7,7 +7,7 @@
 #include <nes/cpu/instructions/instructionset.h>
 
 #include <type_traits>
-
+#include <sstream>
 
 using namespace nes::cpu::instructions;
 using namespace nes::cpu;
@@ -29,9 +29,10 @@ public:
 class MockBus : public nes::cpu::bus::IBus
 {
 private:
-    std::vector<uint8_t> _memory;
+    static const int size = 0xffff;
+    uint8_t _memory[size];
 public:
-    MockBus(int size) : _memory(size)                                  { _memory.reserve(size); for(int i = 0; i < size; i++) _memory[i] = 0; }
+    MockBus()                                                          { for(int i = 0; i < size; i++) _memory[i] = 0; }
     virtual uint8_t read(uint16_t address) const                       { return _memory[address];  }
     virtual void    write(uint16_t address, uint8_t value)             { _memory[address] = value; }
     virtual void    connect(nes::peripherals::IPeripheral& peripheral) { /* not used */            }
@@ -48,9 +49,11 @@ protected:
     void SetUp() override
     {
         handler = new MockInstructionErrorHandler;
-        bus     = new MockBus(100);
+        bus     = new MockBus;
 
         registers.reset();
+
+        hex(0x1234);
     }
 
     void TearDown() override
@@ -62,20 +65,37 @@ protected:
         bus     = nullptr;
     }
 
+    template<typename T>
+    std::string hex(T number)
+    {
+        std::stringstream ss;
+        ss << "0x";
+        constexpr char hx[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+        for(int i = 1; i <= sizeof(T) * 2; i++)
+        {
+            ss << hx[number >> ((sizeof(T) * 2 - 1) * 4)];
+            number <<= 4;
+        }
+
+        return ss.str();
+    }
+
     void compare(const nes::cpu::Registers& expected)
     {
-        EXPECT_EQ(expected.a  , registers.a  ) << "expected accumulator to be " << expected.a   << " but it was " << registers.a  ;
-        EXPECT_EQ(expected.x  , registers.x  ) << "expected index x to be " << expected.x   << " but it was " << registers.x  ;
-        EXPECT_EQ(expected.y  , registers.y  ) << "expected index y to be " << expected.y   << " but it was " << registers.y  ;
-        EXPECT_EQ(expected.pc , registers.pc ) << "expected program counter to be " << expected.pc  << " but it was " << registers.pc ;
-        EXPECT_EQ(expected.p.n, registers.p.n) << "expected negative flag to be " << expected.p.n << " but it was " << registers.p.n;
-        EXPECT_EQ(expected.p.u, registers.p.u) << "expected unused flag to be " << expected.p.u << " but it was " << registers.p.u;
-        EXPECT_EQ(expected.p.v, registers.p.v) << "expected overflow flag to be " << expected.p.v << " but it was " << registers.p.v;
-        EXPECT_EQ(expected.p.b, registers.p.b) << "expected break flag to be " << expected.p.b << " but it was " << registers.p.b;
-        EXPECT_EQ(expected.p.d, registers.p.d) << "expected decimal flag to be " << expected.p.d << " but it was " << registers.p.d;
-        EXPECT_EQ(expected.p.i, registers.p.i) << "expected IRQ flag to be " << expected.p.i << " but it was " << registers.p.i;
-        EXPECT_EQ(expected.p.z, registers.p.z) << "expected zero flag to be " << expected.p.z << " but it was " << registers.p.z;
-        EXPECT_EQ(expected.p.c, registers.p.c) << "expected carry flag to be " << expected.p.c << " but it was " << registers.p.c;
+        EXPECT_EQ(expected.a  , registers.a  ) << "expected accumulator to be "     << hex(expected.a  ) << " but it was " << hex(registers.a  );
+        EXPECT_EQ(expected.x  , registers.x  ) << "expected index x to be "         << hex(expected.x  ) << " but it was " << hex(registers.x  );
+        EXPECT_EQ(expected.y  , registers.y  ) << "expected index y to be "         << hex(expected.y  ) << " but it was " << hex(registers.y  );
+        EXPECT_EQ(expected.pc , registers.pc ) << "expected program counter to be " << hex(expected.pc ) << " but it was " << hex(registers.pc );
+        EXPECT_EQ(expected.sp , registers.sp ) << "expected stack pointer to be "   << hex(expected.sp ) << " but it was " << hex(registers.sp );
+        EXPECT_EQ(expected.p.n, registers.p.n) << "expected negative flag to be "   << hex(expected.p.n) << " but it was " << hex(registers.p.n);
+        EXPECT_EQ(expected.p.u, registers.p.u) << "expected unused flag to be "     << hex(expected.p.u) << " but it was " << hex(registers.p.u);
+        EXPECT_EQ(expected.p.v, registers.p.v) << "expected overflow flag to be "   << hex(expected.p.v) << " but it was " << hex(registers.p.v);
+        EXPECT_EQ(expected.p.b, registers.p.b) << "expected break flag to be "      << hex(expected.p.b) << " but it was " << hex(registers.p.b);
+        EXPECT_EQ(expected.p.d, registers.p.d) << "expected decimal flag to be "    << hex(expected.p.d) << " but it was " << hex(registers.p.d);
+        EXPECT_EQ(expected.p.i, registers.p.i) << "expected IRQ flag to be "        << hex(expected.p.i) << " but it was " << hex(registers.p.i);
+        EXPECT_EQ(expected.p.z, registers.p.z) << "expected zero flag to be "       << hex(expected.p.z) << " but it was " << hex(registers.p.z);
+        EXPECT_EQ(expected.p.c, registers.p.c) << "expected carry flag to be "      << hex(expected.p.c) << " but it was " << hex(registers.p.c);
     }
 
     void execute(IInstruction& instruction, int expectedTicks, bool handlerCalled = false)
@@ -93,6 +113,41 @@ protected:
 
         execute(instruction, ticks, handlerCalled);
         compare(expected);
+    }
+
+    // loads a binary into the bus and preps the program counter
+    void load(std::initializer_list<uint8_t> binary)
+    {
+        constexpr uint16_t binaryStart = 0x0300; // chosen at random
+
+        int i = 0;
+        for(auto byte : binary)
+        {
+            bus->write(binaryStart + i++, byte);
+        }
+
+        registers.pc = binaryStart;
+    }
+
+    // stack value should be reverse order. newest stack entry first. 
+    void stackcmp(std::initializer_list<uint8_t> stack)
+    {
+        auto sp = registers.sp;
+        for(auto expected : stack)
+        {
+            auto actual = bus->read(0x0100 | ++sp);
+            EXPECT_EQ(expected, actual) << "Expected stack value at " << hex(sp) << " to be " << hex(expected) << " but was " << hex(actual);
+        }
+    }
+
+    uint8_t lo(uint16_t value)
+    {
+        return static_cast<uint8_t>(value & 0xff);
+    }
+
+    uint8_t hi(uint16_t value)
+    {
+        return static_cast<uint8_t>(value >> 8);
     }
 };
 
@@ -127,7 +182,25 @@ TEST_F(InstructionTestFixture, CLDTest)
 
 TEST_F(InstructionTestFixture, BRKTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.pc = 0xABBA; // a number that we can identify the first and second byte order with.
+    registers.p.c = true; // set some flags that we want to read back from the stack.
+    registers.p.n = true; 
+
+    auto expected = registers;
+    expected.p.b = true;
+    expected.pc = 0xfffe; // IRQ vector
+    expected.sp -= 3;
+
+    run<BRKInstruction>(AddressingMode::IMP, 7, expected);
+
+    expected.p.b = false; // this one is set after it enters the stack. so it should be fase for the stack comparison
+    expected.pc = 0xABBA; // same for the PC
+
+    stackcmp({ // we check in reverse order
+        expected.p.toByte(),
+        hi(expected.pc),
+        lo(expected.pc)
+    });
 }
 
 TEST_F(InstructionTestFixture, ORATest)
@@ -342,7 +415,36 @@ TEST_F(InstructionTestFixture, ADCTest)
 
 TEST_F(InstructionTestFixture, RORTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.a = 0x80;
+    auto expected = registers;
+    expected.pc++;
+    expected.a >>= 1;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a |= 0x01;
+    expected = registers;
+    expected.pc++;
+    expected.a >>= 1;
+    expected.p.c = true;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    expected.pc++;
+    expected.a >>= 1;
+    expected.a |= 0x80;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.p.z = false;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.reset();
+    registers.a = 1;
+    expected = registers;
+    expected.pc++;
+    expected.a = 0;
+    expected.p.c = true;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, PLATest)
@@ -458,7 +560,11 @@ TEST_F(InstructionTestFixture, TYATest)
 
 TEST_F(InstructionTestFixture, TXSTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.x = 15;
+    auto expected = registers;
+    expected.pc++;
+    expected.sp = registers.x;
+    run<TXSInstruction>(AddressingMode::IMP, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, LDYTest)
