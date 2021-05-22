@@ -28,10 +28,21 @@ private:
     virtual uint8_t ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
     virtual uint8_t ZPY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
 
+    
+
 protected:
     // stack operations
     void    push(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
     uint8_t pull(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
+
+    uint16_t read16(nes::cpu::bus::IBus& bus, uint16_t addr);
+
+    uint16_t getABSXYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t reg, bool& pageCrossed);
+    uint16_t getZeroPageXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
+    uint8_t indirectX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
+    uint8_t indirectY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed);
+
+    void    setNZ(nes::cpu::Registers& registers, uint8_t input);
 
 public:
     BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler);

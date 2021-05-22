@@ -45,6 +45,49 @@ namespace nes::cpu::instructions
         return bus.read(0x0100 | registers.sp);
     }
 
+    uint16_t BaseInstruction::read16(nes::cpu::bus::IBus& bus, uint16_t addr)
+    {
+        return bus.read(addr)     |
+               bus.read(addr + 1) << 8;
+    }
+
+    uint16_t BaseInstruction::getABSXYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t reg, bool& pageCrossed)
+    {
+        auto addr = read16(bus, registers.pc + 1);
+        auto page = addr & 0xff00;
+        addr += static_cast<int8_t>(reg);
+        pageCrossed = (page != (addr & 0xff00));
+        return addr;
+    }
+
+    uint16_t BaseInstruction::getZeroPageXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+    {
+        return (bus.read(registers.pc+1) + registers.x) & 0xff;
+    }
+
+    uint8_t BaseInstruction::indirectX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+    {
+        return bus.read(bus.read(registers.pc + 1) + registers.x);
+    }
+
+    uint8_t BaseInstruction::indirectY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed)
+    {
+        uint16_t    addr = bus.read(bus.read(registers.pc + 1));
+        auto page = addr & 0xff00;
+        
+        addr += static_cast<int8_t>(registers.y);
+        
+        pageCrossed = page != (addr & 0xff00);
+
+        return bus.read(addr);
+    }
+
+    void BaseInstruction::setNZ(nes::cpu::Registers& registers, uint8_t input)
+    {
+        registers.p.z =  input == 0x00;
+        registers.p.n = (input &  0x80) > 0;
+    }
+
     uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }
     uint8_t BaseInstruction::ABSX(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSX);  return 0; }
     uint8_t BaseInstruction::ABSY(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSY);  return 0; }

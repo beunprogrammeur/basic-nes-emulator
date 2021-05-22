@@ -88,14 +88,14 @@ protected:
         EXPECT_EQ(expected.y  , registers.y  ) << "expected index y to be "         << hex(expected.y  ) << " but it was " << hex(registers.y  );
         EXPECT_EQ(expected.pc , registers.pc ) << "expected program counter to be " << hex(expected.pc ) << " but it was " << hex(registers.pc );
         EXPECT_EQ(expected.sp , registers.sp ) << "expected stack pointer to be "   << hex(expected.sp ) << " but it was " << hex(registers.sp );
-        EXPECT_EQ(expected.p.n, registers.p.n) << "expected negative flag to be "   << hex(expected.p.n) << " but it was " << hex(registers.p.n);
-        EXPECT_EQ(expected.p.u, registers.p.u) << "expected unused flag to be "     << hex(expected.p.u) << " but it was " << hex(registers.p.u);
-        EXPECT_EQ(expected.p.v, registers.p.v) << "expected overflow flag to be "   << hex(expected.p.v) << " but it was " << hex(registers.p.v);
-        EXPECT_EQ(expected.p.b, registers.p.b) << "expected break flag to be "      << hex(expected.p.b) << " but it was " << hex(registers.p.b);
-        EXPECT_EQ(expected.p.d, registers.p.d) << "expected decimal flag to be "    << hex(expected.p.d) << " but it was " << hex(registers.p.d);
-        EXPECT_EQ(expected.p.i, registers.p.i) << "expected IRQ flag to be "        << hex(expected.p.i) << " but it was " << hex(registers.p.i);
-        EXPECT_EQ(expected.p.z, registers.p.z) << "expected zero flag to be "       << hex(expected.p.z) << " but it was " << hex(registers.p.z);
-        EXPECT_EQ(expected.p.c, registers.p.c) << "expected carry flag to be "      << hex(expected.p.c) << " but it was " << hex(registers.p.c);
+        EXPECT_EQ(expected.p.n, registers.p.n) << "expected negative flag to be "   << expected.p.n << " but it was " << registers.p.n;
+        EXPECT_EQ(expected.p.u, registers.p.u) << "expected unused flag to be "     << expected.p.u << " but it was " << registers.p.u;
+        EXPECT_EQ(expected.p.v, registers.p.v) << "expected overflow flag to be "   << expected.p.v << " but it was " << registers.p.v;
+        EXPECT_EQ(expected.p.b, registers.p.b) << "expected break flag to be "      << expected.p.b << " but it was " << registers.p.b;
+        EXPECT_EQ(expected.p.d, registers.p.d) << "expected decimal flag to be "    << expected.p.d << " but it was " << registers.p.d;
+        EXPECT_EQ(expected.p.i, registers.p.i) << "expected IRQ flag to be "        << expected.p.i << " but it was " << registers.p.i;
+        EXPECT_EQ(expected.p.z, registers.p.z) << "expected zero flag to be "       << expected.p.z << " but it was " << registers.p.z;
+        EXPECT_EQ(expected.p.c, registers.p.c) << "expected carry flag to be "      << expected.p.c << " but it was " << registers.p.c;
     }
 
     void execute(IInstruction& instruction, int expectedTicks, bool handlerCalled = false)
@@ -116,17 +116,15 @@ protected:
     }
 
     // loads a binary into the bus and preps the program counter
-    void load(std::initializer_list<uint8_t> binary)
+    void load(uint16_t startAddress, std::initializer_list<uint8_t> binary)
     {
-        constexpr uint16_t binaryStart = 0x0300; // chosen at random
-
-        int i = 0;
+        int i = 1;
         for(auto byte : binary)
         {
-            bus->write(binaryStart + i++, byte);
+            bus->write(startAddress + i++, byte);
         }
 
-        registers.pc = binaryStart;
+        registers.pc = startAddress;
     }
 
     // stack value should be reverse order. newest stack entry first. 
@@ -148,6 +146,12 @@ protected:
     uint8_t hi(uint16_t value)
     {
         return static_cast<uint8_t>(value >> 8);
+    }
+
+    // push value onto the stack
+    void push(uint8_t value)
+    {
+        bus->write(0x0100 | registers.sp--, value);
     }
 };
 
@@ -198,19 +202,246 @@ TEST_F(InstructionTestFixture, BRKTest)
 
     stackcmp({ // we check in reverse order
         expected.p.toByte(),
+        lo(expected.pc),
         hi(expected.pc),
-        lo(expected.pc)
     });
 }
 
-TEST_F(InstructionTestFixture, ORATest)
+TEST_F(InstructionTestFixture, ORAImmediateTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xf0});
+    registers.a = 0x01;
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0xf1;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::IMM, 2, expected);
+
+    load(0xFF00, {0x00});
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::IMM, 2, expected);
 }
 
-TEST_F(InstructionTestFixture, XXXTest)
+TEST_F(InstructionTestFixture, ORAZeroPageTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xf0});
+    bus->write(0xf0, 0x80);
+    registers.a = 0x01;
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::ZP, 3, expected);
+
+    load(0xFF00, {0xaa});
+    bus->write(0xaa, 0x00);
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::ZP, 3, expected);
+}
+
+TEST_F(InstructionTestFixture, ORAZeroPageXTest)
+{
+    load(0xFF00, {0xf0});
+    bus->write(0xf1, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x01; // added to the address
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::ZPX, 4, expected);
+
+    load(0xFF00, {0xff});
+    bus->write(0x01, 0x44);
+    registers.x = 0x02;
+    registers.a = 0x11;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x55;
+    expected.p.n = false;
+    expected.p.z = false;
+    run<ORAInstruction>(AddressingMode::ZPX, 4, expected);
+
+    load(0xFF00, {0xff});
+    bus->write(0x02, 0x0);
+    registers.x = 0x03;
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x00;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::ZPX, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, ORAAbsoluteTest)
+{
+    load(0xFF00, {0xef, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::ABS, 4, expected);
+
+    load(0xFF00, {0x0d, 0xd0});
+    bus->write(0xd00d, 0x00);
+    bus->write(0x0dd0, 0xff); // to make sure this fails if the msb and lsd are swapped
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::ABS, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, ORAAbsoluteXTest)
+{
+    load(0xFF00, {0xee, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::ABSX, 4, expected);
+
+    load(0xFF00, {0x0e, 0xd0});
+    bus->write(0xd00d, 0x00);
+    bus->write(0x0dd0, 0xff); // to make sure this fails if the msb and lsd are swapped
+    registers.a = 0x00;
+    registers.x = -1;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::ABSX, 4, expected);
+
+    // cross page
+    load(0xFF00, {0x00, 0xAA}); // addr 0xAA00, -1 is 0xA9FF thus page boundary crossed
+    bus->write(0xA9FF, 0x11);
+    registers.a = 0x44;
+    registers.x = -1; // addr - 1 = 0xa9ff
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0x55;
+    expected.p.z = false;
+    run<ORAInstruction>(AddressingMode::ABSX, 5, expected); // page cross + 1 tick
+}
+
+TEST_F(InstructionTestFixture, ORAAbsoluteYTest)
+{
+    load(0xFF00, {0xee, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::ABSY, 4, expected);
+
+    load(0xFF00, {0x0e, 0xd0});
+    bus->write(0xd00d, 0x00);
+    bus->write(0x0dd0, 0xff); // to make sure this fails if the msb and lsd are swapped
+    registers.a = 0x00;
+    registers.y = -1;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::ABSY, 4, expected);
+
+    // cross page
+    load(0xFF00, {0x00, 0xAA}); // addr 0xAA00, -1 is 0xA9FF thus page boundary crossed
+    bus->write(0xA9FF, 0x11);
+    registers.a = 0x44;
+    registers.y = -1; // addr - 1 = 0xa9ff
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0x55;
+    expected.p.z = false;
+    run<ORAInstruction>(AddressingMode::ABSY, 5, expected); // page cross + 1 tick
+}
+
+TEST_F(InstructionTestFixture, ORAIndirectXTest)
+{
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x50;
+    bus->write(0x02, 0x05);
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x55;
+    run<ORAInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x00;
+    bus->write(0x02, 0x00);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x00;
+    expected.p.z = true;
+    run<ORAInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x01;
+    bus->write(0x02, 0x80);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x81;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<ORAInstruction>(AddressingMode::IINDX, 6, expected);
+}
+
+TEST_F(InstructionTestFixture, ORAIndirectYTest)
+{
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0x06, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x01;
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.p.n = true;
+    expected.a = 0x81;
+    run<ORAInstruction>(AddressingMode::IINDY, 5, expected);
+
+    // page cross test
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0xFFFF, 0x00); // wraparound
+    registers.a = 0x00;
+    registers.y = -6;
+
+    expected = registers;
+    expected.pc += 2;
+    expected.p.z = true;
+    expected.p.n = false;
+    expected.a = 0x00;
+    run<ORAInstruction>(AddressingMode::IINDY, 6, expected);
 }
 
 TEST_F(InstructionTestFixture, ASLAccumulatorTest)
@@ -244,34 +475,406 @@ TEST_F(InstructionTestFixture, ASLAccumulatorTest)
     run<ASLInstruction>(AddressingMode::ACC, 2, expected);
 }
 
-TEST_F(InstructionTestFixture, ASLTest)
+TEST_F(InstructionTestFixture, ASLZeroPageTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xBA});
+    bus->write(0xBA, 0x80);
+    auto expected = registers;
+    expected.pc += 3;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ASLInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(0x00, bus->read(0xBA));
+
+    load(0xFF00, {0xBA});
+    bus->write(0xBA, 0x40);
+    expected = registers;
+    expected.pc += 3;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    run<ASLInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(0x80, bus->read(0xBA));
+}
+
+TEST_F(InstructionTestFixture, ASLZeroPageXTest)
+{
+    load(0xFF00, {0xBA});
+    bus->write(0xBA, 0x80);
+    auto expected = registers;
+    expected.pc += 2;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ASLInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(0x00, bus->read(0xBA));
+
+    load(0xFF00, {0xBA});
+    bus->write(0xBA, 0x40);
+    expected = registers;
+    expected.pc += 2;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    run<ASLInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(0x80, bus->read(0xBA));
+}
+
+TEST_F(InstructionTestFixture, ASLAbsoluteTest)
+{
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x80);
+    auto expected = registers;
+    expected.pc += 3;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ASLInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(0x00, bus->read(0xABBA));
+
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x40);
+    expected = registers;
+    expected.pc += 3;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    run<ASLInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(0x80, bus->read(0xABBA));
+}
+
+TEST_F(InstructionTestFixture, ASLAbsoluteXTest)
+{
+    load(0xFF00, {0xB9, 0xAB});
+    bus->write(0xABBA, 0x80);
+    registers.x = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ASLInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(0x00, bus->read(0xABBA));
+
+    load(0xFF00, {0xB9, 0xAB});
+    bus->write(0xABBA, 0x40);
+    registers.x = 0x01;
+    expected = registers;
+    expected.pc += 3;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    run<ASLInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(0x80, bus->read(0xABBA));
 }
 
 TEST_F(InstructionTestFixture, PHPTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.p.n = true;
+    registers.p.z = true;
+    registers.p.d = true;
+    auto expected = registers;
+    expected.pc++;
+    expected.sp--;
+
+    run<PHPInstruction>(AddressingMode::IMP, 3, expected);
+    stackcmp({registers.p.toByte()});
 }
 
 TEST_F(InstructionTestFixture, BPLTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0x00}); // load a 0, we don't really need to do anything because the negative flag is true
+    registers.p.n = true;
+    auto expected = registers;
+    expected.pc += 2;
+    run<BPLInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {0x04});
+    registers.p.n = false;
+    expected = registers;
+    expected.pc = 0xFF04;
+    run<BPLInstruction>(AddressingMode::REL, 3, expected);
+    
+
+    load(0xFF00, {static_cast<uint8_t>(-1)}); // jump -1 so we hop to the previous page
+    registers.p.n = false;
+    expected = registers;
+    expected.pc = 0xFF00 -1;
+    run<BPLInstruction>(AddressingMode::REL, 4, expected);
+    
+
 }
 
 TEST_F(InstructionTestFixture, JSRTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xBA, 0xAB});
+    auto expected = registers;
+    expected.pc  = 0xABBA;
+    expected.sp -= 2;
+    run<JSRInstruction>(AddressingMode::ABS, 6, expected);
+    stackcmp({0x02, 0xFF});
 }
 
-TEST_F(InstructionTestFixture, ANDTest)
+TEST_F(InstructionTestFixture, ANDImmediateTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0x80});
+    registers.a = 0x81;
+    auto expected = registers;
+    expected.pc +=2;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::IMM, 2, expected);
+
+    load(0xFF00, {0x80});
+    registers.a = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=2;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::IMM, 2, expected);
 }
 
-TEST_F(InstructionTestFixture, BITTest)
+TEST_F(InstructionTestFixture, ANDZeroPageTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0x40});
+    bus->write(0x40, 0x80);
+    registers.a = 0x81;
+    auto expected = registers;
+    expected.pc +=2;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::ZP, 2, expected);
+
+    load(0xFF00, {0x40});
+    bus->write(0x40, 0x80);
+    registers.a = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=2;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ZP, 2, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDZeroPageXTest)
+{
+    load(0xFF00, {0x3f});
+    bus->write(0x40, 0x80);
+    registers.a = 0x81;
+    registers.x = 0x01;
+    auto expected = registers;
+    expected.pc +=2;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::ZPX, 2, expected);
+
+    load(0xFF00, {0x3f});
+    bus->write(0x40, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=2;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ZPX, 2, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDAbsoluteTest)
+{
+    load(0xFF00, {0x40, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x81;
+    auto expected = registers;
+    expected.pc +=3;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::ABS, 4, expected);
+
+    load(0xFF00, {0x40, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=3;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ABS, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDAbsoluteXTest)
+{
+    load(0xFF00, {0x3f, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x81;
+    registers.x = 0x01;
+    auto expected = registers;
+    expected.pc +=3;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::ABSX, 4, expected);
+
+    load(0xFF00, {0x3f, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=3;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ABSX, 4, expected);
+
+
+    load(0xFF00, {0xFF, 0x02});
+    bus->write(0x0300, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x1;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=3;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ABSX, 5, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDAbsoluteYTest)
+{
+    load(0xFF00, {0x3f, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x81;
+    registers.y = 0x01;
+    auto expected = registers;
+    expected.pc +=3;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::ABSY, 4, expected);
+
+    load(0xFF00, {0x3f, 0x02});
+    bus->write(0x0240, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x01;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=3;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ABSY, 4, expected);
+
+
+    load(0xFF00, {0xFF, 0x02});
+    bus->write(0x0300, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x1;
+    expected = registers;
+    expected.a = 0x00;
+    expected.pc +=3;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::ABSY, 5, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDIndirectXTest)
+{
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0xf5;
+    bus->write(0x02, 0x05);
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x05;
+    run<ANDInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0xf5;
+    bus->write(0x02, 0x00);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x00;
+    expected.p.z = true;
+    run<ANDInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0xef;
+    bus->write(0x02, 0x80);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x80;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<ANDInstruction>(AddressingMode::IINDX, 6, expected);
+}
+
+TEST_F(InstructionTestFixture, ANDIndirectYTest)
+{
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0x06, 0x80);
+    registers.a = 0x81;
+    registers.y = 0x01;
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.p.n = true;
+    expected.a = 0x80;
+    run<ANDInstruction>(AddressingMode::IINDY, 5, expected);
+
+    // page cross test
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0xFFFF, 0x00); // wraparound
+    registers.a = 0x00;
+    registers.y = -6;
+
+    expected = registers;
+    expected.pc += 2;
+    expected.p.z = true;
+    expected.p.n = false;
+    expected.a = 0x00;
+    run<ANDInstruction>(AddressingMode::IINDY, 6, expected);
+}
+
+TEST_F(InstructionTestFixture, BITZeroPageTest)
+{
+    bus->write(0xABBA, 0x55);
+    load(0xFF00, {0xBA, 0xAB});
+    registers.a = 0x00;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.p.z = true;
+    run<BITInstruction>(AddressingMode::ABS, 4, expected);
+
+    bus->write(0xAB, 0x81);
+    load(0xFF00, {0xAB});
+    registers.a = 0xf0;
+    expected = registers;
+    expected.pc += 3;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<BITInstruction>(AddressingMode::ABS, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, BITAbsoluteTest)
+{
+    bus->write(0xABBA, 0x55);
+    load(0xFF00, {0xBA, 0xAB});
+    registers.a = 0x00;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.p.z = true;
+    run<BITInstruction>(AddressingMode::ABS, 4, expected);
+
+    bus->write(0xABBA, 0x81);
+    load(0xFF00, {0xBA, 0xAB});
+    registers.a = 0xf0;
+    expected = registers;
+    expected.pc += 3;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<BITInstruction>(AddressingMode::ABS, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, ROLTest)
@@ -310,7 +913,13 @@ TEST_F(InstructionTestFixture, ROLTest)
 
 TEST_F(InstructionTestFixture, PLPTest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    expected.p.n = true;
+    expected.p.c = true;
+    expected.p.d = true;
+    expected.pc++;
+    push(expected.p.toByte()); // we push, the opcode pulls, so the sp is as it was
+    run<PLPInstruction>(AddressingMode::IMP, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, BMITest)
@@ -332,7 +941,17 @@ TEST_F(InstructionTestFixture, SECTest)
 
 TEST_F(InstructionTestFixture, RTITest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+
+    // set some recognizable flags
+    expected.p.c = true;
+    expected.p.v = true;
+    expected.p.n = true;
+    expected.pc = 0xABBA;
+    push(hi(expected.pc));
+    push(lo(expected.pc));
+    push(expected.p.toByte());
+    run<RTIInstruction>(AddressingMode::IMP, 6, expected);
 }
 
 TEST_F(InstructionTestFixture, EORTest)
@@ -381,17 +1000,66 @@ TEST_F(InstructionTestFixture, LSRTest)
 
 TEST_F(InstructionTestFixture, PHATest)
 {
-    FAIL() << "Not yet implemented";
+    registers.a = 37;
+    auto expected = registers;
+    expected.pc++;
+    expected.sp--;
+    run<PHAInstruction>(AddressingMode::IMP, 3, expected);
+    stackcmp({37});
 }
 
-TEST_F(InstructionTestFixture, JMPTest)
+TEST_F(InstructionTestFixture, JMPIndirectTest)
 {
-    FAIL() << "Not yet implemented";
+    // from http://www.obelisk.me.uk/6502/reference.html#JMP
+    // An original 6502 has does not correctly fetch the target address if the indirect vector falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF).
+    // In this case fetches the LSB from $xxFF as expected but takes the MSB from $xx00.
+    // This is fixed in some later chips like the 65SC02 so for compatibility always ensure the indirect vector is not at the end of the page.
+
+    auto expected = registers;
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x0D);
+    bus->write(0xABBB, 0xD0);
+    expected.pc = 0xD00D;
+    run<JMPInstruction>(AddressingMode::IABS, 5, expected);
+
+
+    // quirk on 6502: if the LSB of an indirect address e.g. pointer is on the upper boundary of a page
+    // (basically, if the LSB is 255) then (normally) the MSB would be on address 0 from the first next page.
+    // but instead it reads address 0 from the current page.
+    bus->write(0xAAFF, 0xEF); // lsb;
+    bus->write(0xAA00, 0xBE); // msb;
+
+    load(0xFF00, {0xFF, 0xAA}); // write pointer 0xAAFF to address 0xFF01 (simulate 0xFF00 is the current instruction)
+    expected.pc = 0xBEEF;
+    run<JMPInstruction>(AddressingMode::IABS, 5, expected);
+}
+
+TEST_F(InstructionTestFixture, JMPAbsoluteTest)
+{
+    load(0xFF00, {0xBA, 0xAB}); // LSBFirst
+    auto expected = registers;
+    expected.pc = 0xABBA;
+    run<JMPInstruction>(AddressingMode::ABS, 3, expected);
 }
 
 TEST_F(InstructionTestFixture, BVCTest)
 {
-    FAIL() << "Not yet implemented";
+    registers.p.v = true; // do not branch if true
+    load(0xFF00, {10});
+    auto expected = registers;
+    expected.pc += 2;
+    run<BVCInstruction>(AddressingMode::REL, 2, expected);
+
+    registers.p.v = false;
+    load(0xFF00, {10});
+    expected = registers;
+    expected.pc = registers.pc + 10;
+    run<BVCInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {static_cast<uint8_t>(-1)});
+    expected = registers;
+    expected.pc = registers.pc -1;
+    run<BVCInstruction>(AddressingMode::REL, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, CLITest)
@@ -405,7 +1073,12 @@ TEST_F(InstructionTestFixture, CLITest)
 
 TEST_F(InstructionTestFixture, RTSTest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    expected.pc = 0xABBA -1;
+    push(hi(0xABBA));
+    push(lo(0xABBA));
+
+    run<RTSInstruction>(AddressingMode::IMP, 6, expected);
 }
 
 TEST_F(InstructionTestFixture, ADCTest)
@@ -449,7 +1122,24 @@ TEST_F(InstructionTestFixture, RORTest)
 
 TEST_F(InstructionTestFixture, PLATest)
 {
-    FAIL() << "Not yet implemented";
+    auto expected = registers;
+    expected.a = 15;
+    expected.pc++;
+    push(15);
+    run<PLAInstruction>(AddressingMode::IMP, 4, expected);
+
+    expected.a = 128;
+    expected.p.n = true;
+    expected.pc++;
+    push(128);
+    run<PLAInstruction>(AddressingMode::IMP, 4, expected);
+
+    expected.p.n = false;
+    expected.p.z = true;
+    expected.a = 0;
+    expected.pc++;
+    push(0);
+    run<PLAInstruction>(AddressingMode::IMP, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, BVSTest)

@@ -69,8 +69,8 @@ uint8_t BRKInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 {
     constexpr uint16_t IRQInterruptVector = 0xfffe;
 
-    push(registers, bus, registers.pc & 0xff);
     push(registers, bus, registers.pc >> 8);
+    push(registers, bus, registers.pc & 0xff);
     push(registers, bus, registers.p.toByte());
 
     registers.pc = IRQInterruptVector;
@@ -83,45 +83,164 @@ uint8_t BRKInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // ORA
 //
 
-uint8_t ORAInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ORAInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t ORAInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{ 
+    registers.a |= indirectX(registers, bus);
+
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 6; 
+}
+
+uint8_t ORAInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a |= bus.read(bus.read(registers.pc+1));
+    registers.pc +=2;
+    setNZ(registers, registers.a);
+    return 3;
+}
+
+uint8_t ORAInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a |= bus.read(registers.pc+1);
+    registers.pc +=2;
+    setNZ(registers, registers.a);
+    return 2;
+}
+
+uint8_t ORAInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a |= bus.read(read16(bus, registers.pc + 1));
+    registers.pc +=3;
+    setNZ(registers, registers.a);
+    return 4;
+}
+
+uint8_t ORAInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{ 
+    bool pageCrossed;
+    registers.a |= indirectY(registers, bus, pageCrossed);
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 5 + pageCrossed; 
+}
+
+uint8_t ORAInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a |= bus.read(getZeroPageXAddr(registers, bus));
+    registers.pc +=2;
+    setNZ(registers, registers.a);
+    return 4;
+}
+
+uint8_t ORAInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool crossed;
+    registers.a |= bus.read(getABSXYAddr(registers, bus, registers.y, crossed));
+    registers.pc +=3;
+    setNZ(registers, registers.a);
+    return 4 + crossed;
+}
+
+uint8_t ORAInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool crossed;
+    registers.a |= bus.read(getABSXYAddr(registers, bus, registers.x, crossed));
+    registers.pc +=3;
+    setNZ(registers, registers.a);
+    return 4 + crossed;
+}
 
 //
 // ASL
 //
 
-uint8_t ASLInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t ASLInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto ptr = bus.read(registers.pc + 1);
+    uint8_t value = bus.read(ptr);
+    registers.p.c = (value & 0x80) > 0;
+    value <<= 1;
+    bus.write(ptr, value);
+    setNZ(registers, value);
+    registers.pc += 3;
+    return 5;
+}
+
 uint8_t ASLInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
 {
     registers.pc++;
     registers.p.c = (registers.a & 0x80) > 0;
     registers.a <<= 1;
-    registers.p.n = (registers.a & 0x80) > 0;
-    registers.p.z = registers.a == 0;
+    setNZ(registers, registers.a);
     return 2;
 }
 
-uint8_t ASLInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ASLInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ASLInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t ASLInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto ptr = read16(bus, registers.pc + 1);
+    uint8_t value = bus.read(ptr);
+    registers.p.c = (value & 0x80) > 0;
+    value <<= 1;
+    bus.write(ptr, value);
+    setNZ(registers, value);
+    registers.pc += 3;
+    return 6;
+}
+uint8_t ASLInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto ptr = getZeroPageXAddr(registers, bus);
+    auto value = bus.read(ptr);
+    registers.p.c = (value & 0x80) > 0;
+    value <<= 1;
+    bus.write(ptr, value);
+    setNZ(registers, value);
+    registers.pc+= 2;
+    return 6;
+}
+
+uint8_t ASLInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed; // unused
+    auto ptr = getABSXYAddr(registers, bus, registers.x, pageCrossed);
+    auto value = bus.read(ptr);
+    registers.p.c = (value & 0x80) > 0;
+    value <<= 1;
+    bus.write(ptr, value);
+    setNZ(registers, value);
+    registers.pc+= 3;
+    return 7;
+}     
 
 //
 // PHP
 //
 
-uint8_t PHPInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t PHPInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.pc++;
+    push(registers, bus, registers.p.toByte());
+    return 3;
+}
 
 //
 // BPL
 //
 
-uint8_t BPLInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BPLInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    if(registers.p.n)
+    {
+        registers.pc +=2;
+        return 2;
+    }
+
+    auto jmp = static_cast<int8_t>(bus.read(registers.pc+1));
+    auto page = registers.pc & 0xFF00;
+    registers.pc += jmp;
+    
+    return 3 + (page != (registers.pc & 0xFF00));
+}
 
 //
 // CLC
@@ -138,27 +257,102 @@ uint8_t CLCInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // JSR
 //
 
-uint8_t JSRInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t JSRInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    push(registers, bus, (registers.pc + 2) >> 8);
+    push(registers, bus, (registers.pc + 2) & 0xff);
+    registers.pc = read16(bus, registers.pc + 1);
+    return 6;
+}
 
 //
 // AND
 //
 
-uint8_t ANDInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ANDInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t ANDInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a &= indirectX(registers, bus);
+
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 6; 
+}
+uint8_t ANDInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a &= bus.read(bus.read(registers.pc +1));
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 2; 
+}
+
+uint8_t ANDInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a &= bus.read(registers.pc +1);
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 2;
+}
+
+uint8_t ANDInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a &= bus.read(read16(bus, registers.pc +1));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4; 
+}
+uint8_t ANDInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a &= indirectY(registers, bus, pageCrossed);
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 5 + pageCrossed; 
+}
+uint8_t ANDInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a &= bus.read(getZeroPageXAddr(registers, bus));
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 2; 
+}
+uint8_t ANDInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a &= bus.read(getABSXYAddr(registers, bus, registers.y, pageCrossed));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+
+uint8_t ANDInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a &= bus.read(getABSXYAddr(registers, bus, registers.x, pageCrossed));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
 
 //
 // BIT
 //
 
-uint8_t BITInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t BITInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BITInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto value = bus.read(registers.pc + 1) & registers.a;
+    setNZ(registers, value);
+    registers.pc += 3;
+    return 4;
+
+}
+
+uint8_t BITInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto value = read16(bus, registers.pc + 1) & registers.a;
+    setNZ(registers, value);
+    registers.pc += 3;
+    return 4;
+}
 
 //
 // ROL
@@ -185,7 +379,12 @@ uint8_t ROLInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus
 // PLP
 //
 
-uint8_t PLPInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t PLPInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.pc++;
+    registers.p.fromByte(pull(registers, bus));
+    return 4;
+}
 
 //
 // BMI
@@ -208,7 +407,17 @@ uint8_t SECInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // RTI
 //
 
-uint8_t RTIInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t RTIInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto p   = pull(registers, bus);
+    auto pcl = pull(registers, bus);
+    auto pch = pull(registers, bus);
+
+    registers.p.fromByte(p);
+    registers.pc = (pch << 8) | pcl;
+
+    return 6;
+}
 
 //
 // EOR
@@ -246,20 +455,62 @@ uint8_t LSRInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus
 // PHA
 //
 
-uint8_t PHAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t PHAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.pc++;
+    push(registers, bus, registers.a);
+    return 3;
+}
 
 //
 // JMP
 //
 
-uint8_t JMPInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t JMPInstruction::IABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t JMPInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) 
+{
+    uint16_t addr = 0;
+    addr |= bus.read(registers.pc+1);
+    addr |= bus.read(registers.pc+2) << 8;
+    registers.pc = addr;
+    return 3;
+}
+
+uint8_t JMPInstruction::IABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) 
+{
+    // indirect addressing (ABS)
+    uint16_t addr = 0;
+    addr |= bus.read(registers.pc+1);
+    addr |= bus.read(registers.pc+2) << 8;
+    registers.pc  = bus.read(addr);
+
+    if((addr & 0xff) == 0xff)
+    {   // quirk: see http://www.obelisk.me.uk/6502/reference.html#JMP
+        registers.pc |= bus.read(addr & 0xFF00) << 8;
+    }
+    else
+    {
+        registers.pc |= bus.read(addr+1) << 8;
+    }
+    return 5;
+}
 
 //
 // BVC
 //
 
-uint8_t BVCInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BVCInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    if(registers.p.v)
+    {
+        registers.pc +=2;
+        return 2;
+    }
+
+    auto page = registers.pc & 0xFF00;
+    registers.pc += static_cast<int8_t>(bus.read(registers.pc+1));
+
+    return 3 + (page != (registers.pc & 0xFF00));
+}  
 
 //
 // CLI
@@ -276,7 +527,13 @@ uint8_t CLIInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // RTS
 //
 
-uint8_t RTSInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t RTSInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto pcl = pull(registers, bus);
+    auto pch = pull(registers, bus);
+    registers.pc = ((pch << 8) | pcl) - 1;
+    return 6;
+}
 
 //
 // ADC
@@ -316,7 +573,14 @@ uint8_t RORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus
 // PLA
 //
 
-uint8_t PLAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t PLAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.pc++;
+    registers.a = pull(registers, bus);
+    registers.p.n = (registers.a & 0x80) > 0;
+    registers.p.z = registers.a == 0;
+    return 4;
+}
 
 //
 // BVS
