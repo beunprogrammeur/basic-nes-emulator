@@ -60,17 +60,17 @@ namespace nes::cpu::instructions
         return addr;
     }
 
-    uint16_t BaseInstruction::getZeroPageXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+    uint16_t BaseInstruction::getZeroPageXYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t xy)
     {
-        return (bus.read(registers.pc+1) + registers.x) & 0xff;
+        return (bus.read(registers.pc+1) + static_cast<int8_t>(xy)) & 0xff;
     }
 
-    uint8_t BaseInstruction::indirectX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+    uint16_t BaseInstruction::indirectXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
     {
-        return bus.read(bus.read(registers.pc + 1) + registers.x);
+        return bus.read(registers.pc + 1) + static_cast<int8_t>(registers.x);
     }
 
-    uint8_t BaseInstruction::indirectY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed)
+    uint16_t BaseInstruction::indirectYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed)
     {
         uint16_t    addr = bus.read(bus.read(registers.pc + 1));
         auto page = addr & 0xff00;
@@ -79,7 +79,7 @@ namespace nes::cpu::instructions
         
         pageCrossed = page != (addr & 0xff00);
 
-        return bus.read(addr);
+        return addr;
     }
 
     void BaseInstruction::setNZ(nes::cpu::Registers& registers, uint8_t input)
@@ -87,6 +87,78 @@ namespace nes::cpu::instructions
         registers.p.z =  input == 0x00;
         registers.p.n = (input &  0x80) > 0;
     }
+
+    uint8_t BaseInstruction::ldTargetImmediate(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target)
+    {
+        target = bus.read(registers.pc + 1);
+        setNZ(registers, target);
+        registers.pc += 2;
+        return 2;
+    }
+
+    uint8_t BaseInstruction::ldTargetZeroPage(nes::cpu::Registers& registers,  nes::cpu::bus::IBus& bus, uint8_t& target)
+    {
+        target = bus.read(bus.read(registers.pc + 1));
+        setNZ(registers, target);
+        registers.pc += 2;
+        return 3;
+    }
+
+    uint8_t BaseInstruction::ldTargetZeroPageXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target, uint8_t xy)
+    {
+        target = bus.read(getZeroPageXYAddr(registers, bus, xy));
+        setNZ(registers, target);
+        registers.pc += 2;
+        return 4;
+    }
+
+    uint8_t BaseInstruction::ldTargetAbsolute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target)
+    {
+        target = bus.read(read16(bus, registers.pc + 1));
+        setNZ(registers, target);
+        registers.pc += 2;
+        return 4;
+    }
+
+    uint8_t BaseInstruction::ldTargetAbsoluteXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target, uint8_t xy)
+    {
+        bool pageCrossed;
+        uint16_t ptr = getABSXYAddr(registers, bus, xy, pageCrossed);
+        target = bus.read(ptr);
+        setNZ(registers, target);
+        registers.pc += 3;
+        return 4 + pageCrossed;
+    }
+
+    uint8_t BaseInstruction::storeZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    {
+        bus.write(bus.read(registers.pc + 1), value);
+        registers.pc += 2;
+        return 3;
+    }
+
+    uint8_t BaseInstruction::storeABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    {
+        bus.write(read16(bus, registers.pc + 1), value);
+        registers.pc += 3;
+        return 4;
+    }
+
+    uint8_t BaseInstruction::storeZPXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value, uint8_t xy)
+    {
+        bus.write(getZeroPageXYAddr(registers, bus, xy), value);
+        registers.pc += 2;
+        return 4;
+    }
+
+    uint8_t BaseInstruction::storeABSXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value, uint8_t xy)
+    {
+        bool pageCrossed;
+        bus.write(getABSXYAddr(registers, bus, xy, pageCrossed), value);
+        registers.pc += 3;
+        return 5;
+    }
+
 
     uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }
     uint8_t BaseInstruction::ABSX(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSX);  return 0; }

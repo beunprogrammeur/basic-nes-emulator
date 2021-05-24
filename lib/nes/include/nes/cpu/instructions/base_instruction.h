@@ -38,11 +38,25 @@ protected:
     uint16_t read16(nes::cpu::bus::IBus& bus, uint16_t addr);
 
     uint16_t getABSXYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t reg, bool& pageCrossed);
-    uint16_t getZeroPageXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
-    uint8_t indirectX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
-    uint8_t indirectY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed);
+    uint16_t getZeroPageXYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t xy);
+
+    uint16_t indirectXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus);
+    uint16_t indirectYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed);
 
     void    setNZ(nes::cpu::Registers& registers, uint8_t input);
+
+    // LD[x,y,a]
+    uint8_t ldTargetImmediate(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target);
+    uint8_t ldTargetZeroPage(nes::cpu::Registers& registers,  nes::cpu::bus::IBus& bus, uint8_t& target);
+    uint8_t ldTargetZeroPageXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target, uint8_t xy);
+    uint8_t ldTargetAbsolute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target);
+    uint8_t ldTargetAbsoluteXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t& target, uint8_t xy);
+
+    // ST[x,y,a]
+    uint8_t storeZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+    uint8_t storeZPXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value, uint8_t xy);
+    uint8_t storeABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+    uint8_t storeABSXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value, uint8_t xy);
 
 public:
     BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler);
