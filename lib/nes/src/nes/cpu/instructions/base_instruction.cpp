@@ -67,7 +67,7 @@ namespace nes::cpu::instructions
 
     uint16_t BaseInstruction::indirectXAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
     {
-        return bus.read(registers.pc + 1) + static_cast<int8_t>(registers.x);
+        return (bus.read(registers.pc + 1) + static_cast<int8_t>(registers.x)) & 0xff;
     }
 
     uint16_t BaseInstruction::indirectYAddr(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool& pageCrossed)
@@ -157,6 +157,32 @@ namespace nes::cpu::instructions
         bus.write(getABSXYAddr(registers, bus, xy, pageCrossed), value);
         registers.pc += 3;
         return 5;
+    }
+
+    // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+    void BaseInstruction::performADC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    {
+        uint16_t sum  = registers.a + value + registers.p.c; 
+        registers.p.c = sum > 0xff;
+        registers.p.v = ~(registers.a ^ value) & (registers.a ^sum) & 0x80;
+        setNZ(registers, sum);
+        registers.a = static_cast<uint8_t>(sum);
+    }
+    
+    // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+    void BaseInstruction::performSBC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value)
+    {
+        uint16_t sum = registers.a + ~value + registers.p.c;
+        registers.p.c = (sum & 0xff00) > 0;
+        registers.p.v = ~(registers.a ^ ~value) & (registers.a ^ sum) & 0x80;
+        setNZ(registers, sum);
+        registers.a = sum;        
+    }
+
+    void BaseInstruction::compare(nes::cpu::Registers& registers, uint8_t& reg, uint8_t memory)
+    {
+        registers.p.c = reg >= memory;
+        setNZ(registers, reg - memory);
     }
 
 

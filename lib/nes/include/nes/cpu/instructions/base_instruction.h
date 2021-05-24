@@ -58,6 +58,13 @@ protected:
     uint8_t storeABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
     uint8_t storeABSXY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value, uint8_t xy);
 
+    //adc helper
+    void performADC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+    void performSBC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
+
+    //cmp, cpx, cpy helpers
+    void compare(nes::cpu::Registers& registers, uint8_t& reg, uint8_t memory);
+
 public:
     BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler);
     virtual uint8_t execute(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) override;

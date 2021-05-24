@@ -282,7 +282,7 @@ uint8_t ANDInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& 
     registers.a &= bus.read(bus.read(registers.pc +1));
     setNZ(registers, registers.a);
     registers.pc += 2;
-    return 2; 
+    return 3; 
 }
 
 uint8_t ANDInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
@@ -313,7 +313,7 @@ uint8_t ANDInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
     registers.a &= bus.read(getZeroPageXYAddr(registers, bus, registers.x));
     setNZ(registers, registers.a);
     registers.pc += 2;
-    return 2; 
+    return 4; 
 }
 uint8_t ANDInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
 {
@@ -491,20 +491,88 @@ uint8_t RTIInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // EOR
 //
 
-uint8_t EORInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t EORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+
+uint8_t EORInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a ^= bus.read(indirectXAddr(registers, bus));
+
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 6; 
+}
+uint8_t EORInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a ^= bus.read(bus.read(registers.pc +1));
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 3; 
+}
+
+uint8_t EORInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a ^= bus.read(registers.pc +1);
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 2;
+}
+
+uint8_t EORInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a ^= bus.read(read16(bus, registers.pc +1));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4; 
+}
+uint8_t EORInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a ^= bus.read(indirectYAddr(registers, bus, pageCrossed));
+    registers.pc += 2;
+    setNZ(registers, registers.a);
+    return 5 + pageCrossed; 
+}
+uint8_t EORInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    registers.a ^= bus.read(getZeroPageXYAddr(registers, bus, registers.x));
+    setNZ(registers, registers.a);
+    registers.pc += 2;
+    return 4; 
+}
+uint8_t EORInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a ^= bus.read(getABSXYAddr(registers, bus, registers.y, pageCrossed));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+
+uint8_t EORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    registers.a ^= bus.read(getABSXYAddr(registers, bus, registers.x, pageCrossed));
+    setNZ(registers, registers.a);
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+  
 
 //
 // LSR
 //
 
-uint8_t LSRInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t LSRInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    uint16_t ptr   = bus.read(registers.pc + 1);
+    uint8_t  value = bus.read(ptr);
+    registers.pc += 3;
+    registers.p.c = value & 1;
+    value >>= 1;
+    registers.p.z = value == 0;
+    registers.p.n = (value & 0x80) > 0; // do we really need this? this should never be possible.
+    bus.write(ptr, value);
+    return 5;
+}
 uint8_t LSRInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
 {
     registers.pc++;
@@ -515,9 +583,45 @@ uint8_t LSRInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
     return 2;    
 }
 
-uint8_t LSRInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t LSRInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t LSRInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t LSRInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    uint16_t ptr   = read16(bus, registers.pc + 1);
+    uint8_t  value = bus.read(ptr);
+    registers.pc += 3;
+    registers.p.c = value & 1;
+    value >>= 1;
+    registers.p.z = value == 0;
+    registers.p.n = (value & 0x80) > 0; // do we really need this? this should never be possible.
+    bus.write(ptr, value);
+    return 6;
+}
+
+uint8_t LSRInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    uint16_t ptr   = getZeroPageXYAddr(registers, bus, registers.x);
+    uint8_t  value = bus.read(ptr);
+    registers.pc += 2;
+    registers.p.c = value & 1;
+    value >>= 1;
+    registers.p.z = value == 0;
+    registers.p.n = (value & 0x80) > 0; // do we really need this? this should never be possible.
+    bus.write(ptr, value);
+    return 6;
+}
+
+uint8_t LSRInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed; // not used
+    uint16_t ptr   = getABSXYAddr(registers, bus, registers.x, pageCrossed);
+    uint8_t  value = bus.read(ptr);
+    registers.pc += 3;
+    registers.p.c = value & 1;
+    value >>= 1;
+    registers.p.z = value == 0;
+    registers.p.n = (value & 0x80) > 0; // do we really need this? this should never be possible.
+    bus.write(ptr, value);
+    return 7;
+}
 
 //
 // PHA
@@ -607,35 +711,144 @@ uint8_t RTSInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // ADC
 //
 
-uint8_t ADCInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t ADCInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+// should we implement the decimal flag + 1 tick? NES doesn't use the decimal flag.
+
+//http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+uint8_t ADCInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performADC(registers, bus, bus.read(indirectXAddr(registers, bus)));
+    registers.pc += 2;
+    return 6;
+}
+
+uint8_t ADCInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performADC(registers, bus, bus.read(bus.read(registers.pc + 1)));
+    registers.pc += 2;
+    return 3;
+}
+
+uint8_t ADCInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performADC(registers, bus, bus.read(registers.pc + 1));
+    registers.pc += 2;
+    return 2;
+}
+
+uint8_t ADCInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performADC(registers, bus, bus.read(read16(bus, registers.pc + 1)));
+    registers.pc += 3;
+    return 4;
+}
+
+uint8_t ADCInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performADC(registers, bus, bus.read(indirectYAddr(registers, bus, pageCrossed)));
+    registers.pc += 2;
+    return 5 + pageCrossed;
+}
+
+uint8_t ADCInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performADC(registers, bus, bus.read(getZeroPageXYAddr(registers, bus, registers.x)));
+    registers.pc += 2;
+    return 4;
+}
+
+uint8_t ADCInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performADC(registers, bus, bus.read(getABSXYAddr(registers, bus, registers.y, pageCrossed)));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+
+uint8_t ADCInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performADC(registers, bus, bus.read(getABSXYAddr(registers, bus, registers.x, pageCrossed)));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
 
 //
 // ROR
 //
 
-uint8_t RORInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t RORInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto carry = registers.p.c;
+    auto ptr   = bus.read(registers.pc + 1);
+    auto value = bus.read(ptr);
+
+    registers.pc += 2;
+    registers.p.c = value & 1;
+    value >>= 1;
+    value |= carry << 7;
+    setNZ(registers, value);
+    bus.write(ptr, value);
+    return 5;
+}
+
 uint8_t RORInstruction::ACC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
 {
-    auto carry = registers.a & 1;
+    auto carry = registers.p.c;
     registers.pc++;
+    registers.p.c = registers.a & 1;
     registers.a >>= 1;
-    registers.a |= registers.p.c << 7;
-    registers.p.z = registers.a == 0;
-    registers.p.c = carry;
-    registers.p.n = (registers.a & 0x80) > 0;
+    registers.a |= carry << 7;
+    setNZ(registers, registers.a);
     return 2;
 }
 
-uint8_t RORInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t RORInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t RORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t RORInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto carry = registers.p.c;
+    auto ptr   = read16(bus, registers.pc +1);
+    auto value = bus.read(ptr);
+
+    registers.pc += 3;
+    registers.p.c = value & 1;
+    value >>= 1;
+    value |= carry << 7;
+    setNZ(registers, value);
+    bus.write(ptr, value);
+    return 6;
+}
+
+uint8_t RORInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto carry = registers.p.c;
+    auto ptr = getZeroPageXYAddr(registers, bus, registers.x);
+    auto value = bus.read(ptr);
+
+    registers.pc += 2;
+    registers.p.c = value & 1;
+    value >>= 1;
+    value |= carry << 7;
+    setNZ(registers, value);
+    bus.write(ptr, value);
+    return 6;
+}
+
+uint8_t RORInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    auto carry = registers.p.c;
+    bool pageCrossed; // not used
+    auto ptr = getABSXYAddr(registers, bus, registers.x, pageCrossed);
+    auto value = bus.read(ptr);
+
+    registers.pc += 3;
+    registers.p.c = value & 1;
+    value >>= 1;
+    value |= carry << 7;
+    setNZ(registers, value);
+    bus.write(ptr, value);
+    return 7;
+}
+
 
 //
 // PLA
@@ -972,22 +1185,89 @@ uint8_t TSXInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // CPY
 //
 
-uint8_t CPYInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CPYInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CPYInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t CPYInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.y, bus.read(registers.pc + 1));
+    registers.pc += 2;
+    return 2;
+}
 
+uint8_t CPYInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.y, bus.read(bus.read(registers.pc + 1)));
+    registers.pc += 2;
+    return 3;
+}
+
+uint8_t CPYInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)      
+{
+    compare(registers, registers.y, bus.read(read16(bus, registers.pc + 1)));
+    registers.pc += 3;
+    return 4;
+}
 //
 // CMP
 //
 
-uint8_t CMPInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CMPInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t CMPInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.a, bus.read(indirectXAddr(registers, bus)));
+    registers.pc += 2;
+    return 6;
+
+}
+
+uint8_t CMPInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.a, bus.read(bus.read(registers.pc + 1)));
+    registers.pc += 2;
+    return 3;
+}
+
+uint8_t CMPInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.a, bus.read(registers.pc + 1));
+    registers.pc += 2;
+    return 2;
+}
+
+uint8_t CMPInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.a, bus.read(read16(bus, registers.pc + 1)));
+    registers.pc += 3;
+    return 4;
+}
+
+uint8_t CMPInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    compare(registers, registers.a, bus.read(indirectYAddr(registers, bus, pageCrossed)));
+    registers.pc += 2;    
+    return 5 + pageCrossed;
+}
+
+uint8_t CMPInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.a, bus.read(getZeroPageXYAddr(registers, bus, registers.x)));
+    registers.pc += 2;
+    return 4;
+}
+
+uint8_t CMPInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    compare(registers, registers.a, bus.read(getABSXYAddr(registers, bus, registers.y, pageCrossed)));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+
+uint8_t CMPInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    compare(registers, registers.a, bus.read(getABSXYAddr(registers, bus, registers.x, pageCrossed)));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
 
 //
 // DEC
@@ -1089,22 +1369,88 @@ uint8_t CLDInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // CPX
 //
 
-uint8_t CPXInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CPXInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t CPXInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t CPXInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.x, bus.read(registers.pc + 1));
+    registers.pc += 2;
+    return 2;
+}
 
+uint8_t CPXInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    compare(registers, registers.x, bus.read(bus.read(registers.pc + 1)));
+    registers.pc += 2;
+    return 3;
+}
+
+uint8_t CPXInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)      
+{
+    compare(registers, registers.x, bus.read(read16(bus, registers.pc + 1)));
+    registers.pc += 3;
+    return 4;
+}
 //
 // SBC
 //
 
-uint8_t SBCInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
-uint8_t SBCInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t SBCInstruction::IINDX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performSBC(registers, bus, bus.read(indirectXAddr(registers, bus)));
+    registers.pc += 2;
+    return 6;
+}
+
+uint8_t SBCInstruction::ZP(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performSBC(registers, bus, bus.read(bus.read(registers.pc + 1)));
+    registers.pc += 2;
+    return 3;
+}
+
+uint8_t SBCInstruction::IMM(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) 
+{
+    performSBC(registers, bus, bus.read(registers.pc + 1));
+    registers.pc += 2;
+    return 2;
+}
+
+uint8_t SBCInstruction::ABS(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performSBC(registers, bus, bus.read(read16(bus, registers.pc + 1)));
+    registers.pc += 3;
+    return 4;
+}
+
+uint8_t SBCInstruction::IINDY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performSBC(registers, bus, bus.read(indirectYAddr(registers, bus, pageCrossed)));
+    registers.pc += 2;
+    return 5 + pageCrossed;
+}
+
+uint8_t SBCInstruction::ZPX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    performSBC(registers, bus, getZeroPageXYAddr(registers, bus, registers.x));
+    registers.pc += 2;
+    return 4;
+}
+
+uint8_t SBCInstruction::ABSY(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performSBC(registers, bus, getABSXYAddr(registers, bus, registers.y, pageCrossed));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
+
+uint8_t SBCInstruction::ABSX(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    bool pageCrossed;
+    performSBC(registers, bus, getABSXYAddr(registers, bus, registers.x, pageCrossed));
+    registers.pc += 3;
+    return 4 + pageCrossed;
+}
 
 //
 // INC

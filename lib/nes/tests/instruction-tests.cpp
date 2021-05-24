@@ -922,7 +922,7 @@ TEST_F(InstructionTestFixture, ANDZeroPageTest)
     expected.pc +=2;
     expected.p.n = true;
     expected.a = 0x80;
-    run<ANDInstruction>(AddressingMode::ZP, 2, expected);
+    run<ANDInstruction>(AddressingMode::ZP, 3, expected);
 
     load(0xFF00, {0x40});
     bus->write(0x40, 0x80);
@@ -932,7 +932,7 @@ TEST_F(InstructionTestFixture, ANDZeroPageTest)
     expected.pc +=2;
     expected.p.n = false;
     expected.p.z = true;
-    run<ANDInstruction>(AddressingMode::ZP, 2, expected);
+    run<ANDInstruction>(AddressingMode::ZP, 3, expected);
 }
 
 TEST_F(InstructionTestFixture, ANDZeroPageXTest)
@@ -945,7 +945,7 @@ TEST_F(InstructionTestFixture, ANDZeroPageXTest)
     expected.pc +=2;
     expected.p.n = true;
     expected.a = 0x80;
-    run<ANDInstruction>(AddressingMode::ZPX, 2, expected);
+    run<ANDInstruction>(AddressingMode::ZPX, 4, expected);
 
     load(0xFF00, {0x3f});
     bus->write(0x40, 0x80);
@@ -956,7 +956,7 @@ TEST_F(InstructionTestFixture, ANDZeroPageXTest)
     expected.pc +=2;
     expected.p.n = false;
     expected.p.z = true;
-    run<ANDInstruction>(AddressingMode::ZPX, 2, expected);
+    run<ANDInstruction>(AddressingMode::ZPX, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, ANDAbsoluteTest)
@@ -1158,6 +1158,135 @@ TEST_F(InstructionTestFixture, BITAbsoluteTest)
     run<BITInstruction>(AddressingMode::ABS, 4, expected);
 }
 
+
+TEST_F(InstructionTestFixture, RORAccummulatorTest)
+{
+    registers.a = 0x80;
+    auto expected = registers;
+    expected.pc++;
+    expected.a >>= 1;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a |= 0x01;
+    expected = registers;
+    expected.pc++;
+    expected.a >>= 1;
+    expected.p.c = true;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.a = 0x00;
+    registers.p.c = true;
+    expected = registers;
+    expected.pc++;
+    expected.a = 0x80;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.p.z = false;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+
+    registers.reset();
+    registers.a = 1;
+    expected = registers;
+    expected.pc++;
+    expected.a = 0;
+    expected.p.c = true;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+}
+
+TEST_F(InstructionTestFixture, RORZeroPageTest)
+{
+    load(0xFF00, {0x04});
+    bus->write(0x04, 0x00);
+    auto expected = registers;
+    registers.p.c = true;
+    expected.pc += 2;
+    expected.p.n = true;
+    run<RORInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(0x80, bus->read(0x04));
+
+    load(0xFF00, {0x04});
+    bus->write(0x04, 0x01);
+    expected = registers;
+    expected.pc += 2;
+    expected.p.n = false;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(0x00, bus->read(0x04));
+}
+
+TEST_F(InstructionTestFixture, RORZeroPageXTest)
+{
+    load(0xFF00, {0x03});
+    bus->write(0x04, 0x00);
+    registers.x = 0x01;
+    auto expected = registers;
+    registers.p.c = true;
+    expected.pc += 2;
+    expected.p.n = true;
+    run<RORInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(0x80, bus->read(0x04));
+
+    load(0xFF00, {0x03});
+    bus->write(0x04, 0x01);
+    registers.x = 0x01;
+    expected = registers;
+    expected.pc += 2;
+    expected.p.n = false;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(0x00, bus->read(0x04));
+}
+
+TEST_F(InstructionTestFixture, RORAbsoluteTest)
+{
+    load(0xFF00, {0x04, 0x04});
+    bus->write(0x0404, 0x00);
+    auto expected = registers;
+    registers.p.c = true;
+    expected.pc += 3;
+    expected.p.n = true;
+    run<RORInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(0x80, bus->read(0x0404));
+
+    load(0xFF00, {0x04, 0x04});
+    bus->write(0x0404, 0x01);
+    expected = registers;
+    expected.pc += 3;
+    expected.p.n = false;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(0x00, bus->read(0x0404));
+}
+
+TEST_F(InstructionTestFixture, RORAbsoluteXTest)
+{
+    load(0xFF00, {0x03, 0x04});
+    bus->write(0x0404, 0x00);
+    registers.x = 0x01;
+    auto expected = registers;
+    registers.p.c = true;
+    expected.pc += 3;
+    expected.p.n = true;
+    run<RORInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(0x80, bus->read(0x0404));
+
+    load(0xFF00, {0x03, 0x04});
+    bus->write(0x0404, 0x01);
+    registers.x = 0x01;
+    expected = registers;
+    expected.pc += 3;
+    expected.p.n = false;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<RORInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(0x00, bus->read(0x0404));
+}
+
 TEST_F(InstructionTestFixture, ROLAccumulatorTest)
 {
     registers.a = 0x01;
@@ -1340,9 +1469,240 @@ TEST_F(InstructionTestFixture, RTITest)
     run<RTIInstruction>(AddressingMode::IMP, 6, expected);
 }
 
-TEST_F(InstructionTestFixture, EORTest)
+TEST_F(InstructionTestFixture, EORImmediateTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xff});
+    registers.a = 0x7f;
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x80;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::IMM, 2, expected);
+
+    load(0xFF00, {0xff});
+    registers.a = 0xff;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::IMM, 2, expected);
+}
+
+TEST_F(InstructionTestFixture, EORZeroPageTest)
+{
+    load(0xFF00, {0xf0});
+    bus->write(0xf0, 0xff);
+    registers.a = 0x7f;
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x80;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::ZP, 3, expected);
+
+    load(0xFF00, {0xaa});
+    bus->write(0xaa, 0xff);
+    registers.a = 0xff;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::ZP, 3, expected);
+}
+
+TEST_F(InstructionTestFixture, EORZeroPageXTest)
+{
+    load(0xFF00, {0xf0});
+    bus->write(0xf1, 0xfe);
+    registers.a = 0x7f;
+    registers.x = 0x01; // added to the address
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::ZPX, 4, expected);
+
+    load(0xFF00, {0xff});
+    bus->write(0x01, 0xaa);
+    registers.x = 0x02;
+    registers.a = 0xff;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x55;
+    expected.p.n = false;
+    expected.p.z = false;
+    run<EORInstruction>(AddressingMode::ZPX, 4, expected);
+
+    load(0xFF00, {0xff});
+    bus->write(0x02, 0x0f);
+    registers.x = 0x03;
+    registers.a = 0x0f;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x00;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::ZPX, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, EORAbsoluteTest)
+{
+    load(0xFF00, {0xef, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::ABS, 4, expected);
+
+    load(0xFF00, {0x0d, 0xd0});
+    bus->write(0xd00d, 0x00);
+    registers.a = 0x00;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::ABS, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, EORAbsoluteXTest)
+{
+    load(0xFF00, {0xee, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    registers.x = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::ABSX, 4, expected);
+
+    load(0xFF00, {0x0e, 0xd0});
+    bus->write(0xd00d, 0x00);
+    bus->write(0x0dd0, 0xff); // to make sure this fails if the msb and lsd are swapped
+    registers.a = 0x00;
+    registers.x = -1;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::ABSX, 4, expected);
+
+    // cross page
+    load(0xFF00, {0x00, 0xAA}); // addr 0xAA00, -1 is 0xA9FF thus page boundary crossed
+    bus->write(0xA9FF, 0x11);
+    registers.a = 0x44;
+    registers.x = -1; // addr - 1 = 0xa9ff
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0x55;
+    expected.p.z = false;
+    run<EORInstruction>(AddressingMode::ABSX, 5, expected); // page cross + 1 tick
+}
+
+TEST_F(InstructionTestFixture, EORAbsoluteYTest)
+{
+    load(0xFF00, {0xee, 0xbe});
+    bus->write(0xbeef, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x01;
+    auto expected = registers;
+    expected.pc += 3;
+    expected.a = 0x81;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::ABSY, 4, expected);
+
+    load(0xFF00, {0x0e, 0xd0});
+    bus->write(0xd00d, 0x00);
+    bus->write(0x0dd0, 0xff); // to make sure this fails if the msb and lsd are swapped
+    registers.a = 0x00;
+    registers.y = -1;
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0;
+    expected.p.n = false;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::ABSY, 4, expected);
+
+    // cross page
+    load(0xFF00, {0x00, 0xAA}); // addr 0xAA00, -1 is 0xA9FF thus page boundary crossed
+    bus->write(0xA9FF, 0x11);
+    registers.a = 0x44;
+    registers.y = -1; // addr - 1 = 0xa9ff
+    expected = registers;
+    expected.pc += 3;
+    expected.a = 0x55;
+    expected.p.z = false;
+    run<EORInstruction>(AddressingMode::ABSY, 5, expected); // page cross + 1 tick
+}
+
+TEST_F(InstructionTestFixture, EORIndirectXTest)
+{
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x50;
+    bus->write(0x02, 0x05);
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.a = 0x55;
+    run<EORInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x00;
+    bus->write(0x02, 0x00);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x00;
+    expected.p.z = true;
+    run<EORInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x01});
+    registers.x = 0x01;
+    registers.a = 0x01;
+    bus->write(0x02, 0x80);
+
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x81;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<EORInstruction>(AddressingMode::IINDX, 6, expected);
+}
+
+TEST_F(InstructionTestFixture, EORIndirectYTest)
+{
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0x06, 0x80);
+    registers.a = 0x01;
+    registers.y = 0x01;
+
+    auto expected = registers;
+    expected.pc += 2;
+    expected.p.n = true;
+    expected.a = 0x81;
+    run<EORInstruction>(AddressingMode::IINDY, 5, expected);
+
+    // page cross test
+    load(0xFF00, {0x01});
+    bus->write(0x01, 0x05);
+    bus->write(0xFFFF, 0x00); // wraparound
+    registers.a = 0x00;
+    registers.y = -6;
+
+    expected = registers;
+    expected.pc += 2;
+    expected.p.z = true;
+    expected.p.n = false;
+    expected.a = 0x00;
+    run<EORInstruction>(AddressingMode::IINDY, 6, expected);
 }
 
 TEST_F(InstructionTestFixture, LSRAccumulatorTest)
@@ -1379,9 +1739,150 @@ TEST_F(InstructionTestFixture, LSRAccumulatorTest)
     // a negative flag. if it actually does (it shouldn't) then one of the above tests will fail for us.
 }
 
-TEST_F(InstructionTestFixture, LSRTest)
+TEST_F(InstructionTestFixture, LSRZPTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0xAB});
+    bus->write(0xAB, 0x08);
+    auto expected = registers;
+    expected.pc+= 3;
+    run<LSRInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(bus->read(0xAB), 0x08 >> 1);
+
+    load(0xFF00, {0xAB});
+    bus->write(0xAB, 0x09);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    run<LSRInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(bus->read(0xAB), 0x09 >> 1);
+
+    load(0xFF00, {0xAB});
+    bus->write(0xAB, 0x00);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = false;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(bus->read(0xAB), 0x00);
+
+    load(0xFF00, {0xAB});
+    bus->write(0xAB, 0x01);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ZP, 5, expected);
+    EXPECT_EQ(bus->read(0xAB), 0x00);
+}
+
+TEST_F(InstructionTestFixture, LSRAbsTest)
+{
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x08);
+    auto expected = registers;
+    expected.pc+= 3;
+    run<LSRInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x08 >> 1);
+
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x09);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    run<LSRInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x09 >> 1);
+
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x00);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = false;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x00);
+
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 0x01);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ABS, 6, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x00);
+}
+
+TEST_F(InstructionTestFixture, LSRAbsXTest)
+{
+    registers.x = -1;
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 0x08);
+    auto expected = registers;
+    expected.pc+= 3;
+    run<LSRInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x08 >> 1);
+
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 0x09);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    run<LSRInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x09 >> 1);
+
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 0x00);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = false;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x00);
+
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 0x01);
+    expected = registers;
+    expected.pc+= 3;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ABSX, 7, expected);
+    EXPECT_EQ(bus->read(0xABBA), 0x00);
+}
+
+TEST_F(InstructionTestFixture, LSRZPXTest)
+{
+    registers.x = -1;
+    load(0xFF00, {0xBB});
+    bus->write(0xBA, 0x08);
+    auto expected = registers;
+    expected.pc+= 2;
+    run<LSRInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(bus->read(0xBA), 0x08 >> 1);
+
+    load(0xFF00, {0xBB});
+    bus->write(0xBA, 0x09);
+    expected = registers;
+    expected.pc+= 2;
+    expected.p.c = true;
+    run<LSRInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(bus->read(0xBA), 0x09 >> 1);
+
+    load(0xFF00, {0xBB});
+    bus->write(0xBA, 0x00);
+    expected = registers;
+    expected.pc+= 2;
+    expected.p.c = false;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(bus->read(0xBA), 0x00);
+
+    load(0xFF00, {0xBB});
+    bus->write(0xBA, 0x01);
+    expected = registers;
+    expected.pc+= 2;
+    expected.p.c = true;
+    expected.p.z = true;
+    run<LSRInstruction>(AddressingMode::ZPX, 6, expected);
+    EXPECT_EQ(bus->read(0xBA), 0x00);
 }
 
 TEST_F(InstructionTestFixture, PHATest)
@@ -1467,44 +1968,50 @@ TEST_F(InstructionTestFixture, RTSTest)
     run<RTSInstruction>(AddressingMode::IMP, 6, expected);
 }
 
+
 TEST_F(InstructionTestFixture, ADCTest)
 {
-    // TODO: add the +1 if decimal mode ticks
-    FAIL() << "Not yet implemented";
+    // the implementation of all ADC opcodes is the same. reading method is standardized.
+    // It's a lot of work, maybe we'll add those tests at some point
+    load(0xFF00, {0x01});
+    registers.a = -1;
+    auto expected = registers;
+    expected.a = 0;
+    expected.pc += 2;
+    expected.p.z = true;
+    expected.p.c = true;
+    run<ADCInstruction>(AddressingMode::IMM, 2, expected);
+
+    load(0xFF00, {0xFF});
+    registers.a = -127;
+    expected = registers;
+    expected.pc += 2;
+    expected.p.z = false;
+    expected.p.n = true;
+    run<ADCInstruction>(AddressingMode::IMM, 2, expected);
 }
 
-TEST_F(InstructionTestFixture, RORTest)
+TEST_F(InstructionTestFixture, SBCTest)
 {
-    registers.a = 0x80;
-    auto expected = registers;
-    expected.pc++;
-    expected.a >>= 1;
-    run<RORInstruction>(AddressingMode::ACC, 2, expected);
-
-    registers.a |= 0x01;
-    expected = registers;
-    expected.pc++;
-    expected.a >>= 1;
-    expected.p.c = true;
-    run<RORInstruction>(AddressingMode::ACC, 2, expected);
-
-    expected.pc++;
-    expected.a >>= 1;
-    expected.a |= 0x80;
-    expected.p.c = false;
-    expected.p.n = true;
-    expected.p.z = false;
-    run<RORInstruction>(AddressingMode::ACC, 2, expected);
-
-    registers.reset();
+    // same story as ADCTest
+    load(0xFF00, {0x01});
     registers.a = 1;
-    expected = registers;
-    expected.pc++;
-    expected.a = 0;
+    auto expected = registers;
+    expected.a = 0xff;
+    expected.pc += 2;
+    expected.p.n = true;
     expected.p.c = true;
-    expected.p.n = false;
-    expected.p.z = true;
-    run<RORInstruction>(AddressingMode::ACC, 2, expected);
+    run<SBCInstruction>(AddressingMode::IMM, 2, expected);
+
+    load(0xFF00, {0xFF});
+    registers.a = 127;
+    expected = registers;
+    expected.pc += 2;
+    expected.a = 0x80;
+    expected.p.z = false;
+    expected.p.n = true;
+    expected.p.v = true;
+    run<SBCInstruction>(AddressingMode::IMM, 2, expected);
 }
 
 TEST_F(InstructionTestFixture, PLATest)
@@ -1981,14 +2488,492 @@ TEST_F(InstructionTestFixture, TSXTest)
     run<TSXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
-TEST_F(InstructionTestFixture, CPYTest)
+TEST_F(InstructionTestFixture, CPXImmediateTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {16});
+    registers.x = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {16});
+    registers.x = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {17});
+    registers.x = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::IMM, 2, expected);   
 }
 
-TEST_F(InstructionTestFixture, CMPTest)
+TEST_F(InstructionTestFixture, CPXZeroPageTest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.x = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.x = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 17);
+    registers.x = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CPXInstruction>(AddressingMode::ZP, 3, expected);   
+}
+
+TEST_F(InstructionTestFixture, CPXAbsoluteTest)
+{
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.x = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CPXInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.x = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CPXInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 17);
+    registers.x = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CPXInstruction>(AddressingMode::ABS, 4, expected);  
+}
+
+TEST_F(InstructionTestFixture, CPYImmediateTest)
+{
+    load(0xFF00, {16});
+    registers.y = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {16});
+    registers.y = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {17});
+    registers.y = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::IMM, 2, expected);   
+}
+
+TEST_F(InstructionTestFixture, CPYZeroPageTest)
+{
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.y = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.y = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 17);
+    registers.y = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CPYInstruction>(AddressingMode::ZP, 3, expected);   
+}
+
+TEST_F(InstructionTestFixture, CPYAbsoluteTest)
+{
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.y = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CPYInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.y = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CPYInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 17);
+    registers.y = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CPYInstruction>(AddressingMode::ABS, 4, expected);  
+}
+
+TEST_F(InstructionTestFixture, CMPImmediateTest)
+{
+    load(0xFF00, {16});
+    registers.a = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {16});
+    registers.a = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IMM, 2, expected);
+    
+    load(0xFF00, {17});
+    registers.a = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IMM, 2, expected);
+}
+
+TEST_F(InstructionTestFixture, CMPZeroPageTest)
+{
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.a = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 16);
+    registers.a = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZP, 3, expected);
+    
+    load(0xFF00, {0x01});
+    bus->write(0x01, 17);
+    registers.a = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZP, 3, expected);   
+}
+
+TEST_F(InstructionTestFixture, CMPAbsoluteTest)
+{
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABS, 4, expected);
+    
+    load(0xFF00, {0xBA, 0xAB});
+    bus->write(0xABBA, 17);
+    registers.a = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABS, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, CMPZeroPageXTest)
+{
+    load(0xFF00, {0x02});
+    bus->write(0x01, 16);
+    registers.x = -1;
+    registers.a = 16;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZPX, 4, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x01, 16);
+    registers.x = -1;
+    registers.a = 17;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZPX, 4, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x01, 17);
+    registers.x = -1;
+    registers.a = 16;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::ZPX, 4, expected); 
+}
+
+TEST_F(InstructionTestFixture, CMPAbsoluteXTest)
+{
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 16;
+    registers.x = -1;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSX, 4, expected);
+    
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 17;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSX, 4, expected);
+    
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 17);
+    registers.a = 16;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSX, 4, expected);
+
+    load(0xFF00, {0x00, 0xAB});
+    bus->write(0xAAFF, 17);
+    registers.a = 16;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSX, 5, expected);
+}
+
+TEST_F(InstructionTestFixture, CMPAbsoluteYTest)
+{
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 16;
+    registers.y = -1;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSY, 4, expected);
+    
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 16);
+    registers.a = 17;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSY, 4, expected);
+    
+    load(0xFF00, {0xBB, 0xAB});
+    bus->write(0xABBA, 17);
+    registers.a = 16;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSY, 4, expected);
+
+    load(0xFF00, {0x00, 0xAB});
+    bus->write(0xAAFF, 17);
+    registers.a = 16;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 3;
+    run<CMPInstruction>(AddressingMode::ABSY, 5, expected);
+}
+
+TEST_F(InstructionTestFixture, CMPIndirectXTest)
+{
+    load(0xFF00, {0x02});
+    bus->write(0x01, 16);
+    registers.a = 16;
+    registers.x = -1;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDX, 6, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x01, 16);
+    registers.a = 17;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDX, 6, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x01, 17);
+    registers.a = 16;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDX, 6, expected);
+
+    load(0xFF00, {0x00});
+    bus->write(0xFF, 17); // wrap-around within the same page
+    registers.a = 16;
+    registers.x = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDX, 6, expected);
+}
+
+TEST_F(InstructionTestFixture, CMPIndirectYTest)
+{
+    load(0xFF00, {0x02});
+    bus->write(0x02, 0x04);
+    bus->write(0x03, 16);
+    registers.a = 16;
+    registers.y = -1;
+    auto expected = registers;
+    expected.p.z = true;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDY, 5, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x02, 0x04);
+    bus->write(0x03, 16);
+    registers.a = 17;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDY, 5, expected);
+    
+    load(0xFF00, {0x02});
+    bus->write(0x02, 0x04);
+    bus->write(0x03, 17);
+    registers.a = 16;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDY, 5, expected);
+
+    load(0xFF00, {0x10});
+    bus->write(0x010, 0x00);
+    bus->write(0xFFFF, 17); 
+    registers.a = 16;
+    registers.y = -1;
+    expected = registers;
+    expected.p.z = false;
+    expected.p.c = false;
+    expected.p.n = true;
+    expected.pc += 2;
+    run<CMPInstruction>(AddressingMode::IINDY, 6, expected);
 }
 
 TEST_F(InstructionTestFixture, DECZeroPageTest)
@@ -2126,16 +3111,6 @@ TEST_F(InstructionTestFixture, DEXTest)
 }
 
 TEST_F(InstructionTestFixture, BNETest)
-{
-    FAIL() << "Not yet implemented";
-}
-
-TEST_F(InstructionTestFixture, CPXTest)
-{
-    FAIL() << "Not yet implemented";
-}
-
-TEST_F(InstructionTestFixture, SBCTest)
 {
     FAIL() << "Not yet implemented";
 }
