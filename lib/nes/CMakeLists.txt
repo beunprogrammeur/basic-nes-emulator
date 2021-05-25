@@ -14,8 +14,20 @@ nes_add_library(nes-peripheral-memory-lib
 )
 
 nes_add_library(nes-bus-lib
-    src/nes/bus/bus.cpp
+    src/nes/cpu/bus/bus.cpp
 )
+
+nes_add_library(nes-instructions-lib
+    src/nes/cpu/instructions/instructions.cpp
+    src/nes/cpu/instructions/base_instruction.cpp
+)
+
+#todo: this lib depends on nes-instructions lib, how can we add lib dependencies too? CMAKE optional parameters? named parameters?
+nes_add_library(nes-instruction-decoder-lib
+    src/nes/cpu/instructions/instructionset.cpp
+    src/nes/cpu/instructions/instruction_decoder.cpp
+)
+
 
 # TODO: adding tests to the build in required
 add_subdirectory(tests)
