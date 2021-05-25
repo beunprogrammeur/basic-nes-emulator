@@ -62,8 +62,11 @@ protected:
     void performADC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
     void performSBC(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, uint8_t value);
 
-    //cmp, cpx, cpy helpers
+    // cmp, cpx, cpy helpers
     void compare(nes::cpu::Registers& registers, uint8_t& reg, uint8_t memory);
+
+    // branching
+    uint8_t branch(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool doBranch);
 
 public:
     BaseInstruction(std::string&& name, IInstructionErrorHandler& instructionErrorHandler);

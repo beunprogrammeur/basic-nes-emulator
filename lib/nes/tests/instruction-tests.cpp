@@ -2036,11 +2036,6 @@ TEST_F(InstructionTestFixture, PLATest)
     run<PLAInstruction>(AddressingMode::IMP, 4, expected);
 }
 
-TEST_F(InstructionTestFixture, BVSTest)
-{
-    FAIL() << "Not yet implemented";
-}
-
 TEST_F(InstructionTestFixture, SEITest)
 {
     auto expected = registers;
@@ -2185,11 +2180,6 @@ TEST_F(InstructionTestFixture, TXATest)
     expected.p.z = false;
     expected.p.n = true;
     run<TXAInstruction>(AddressingMode::IMP, 2, expected);
-}
-
-TEST_F(InstructionTestFixture, BCCTest)
-{
-    FAIL() << "Not yet implemented";
 }
 
 TEST_F(InstructionTestFixture, TYATest)
@@ -2448,11 +2438,6 @@ TEST_F(InstructionTestFixture, TAXTest)
     expected.p.n = false;
     expected.p.z = true;
     run<TAXInstruction>(AddressingMode::IMP, 2, expected);
-}
-
-TEST_F(InstructionTestFixture, BCSTest)
-{
-    FAIL() << "Not yet implemented";
 }
 
 TEST_F(InstructionTestFixture, CLVTest)
@@ -3110,9 +3095,104 @@ TEST_F(InstructionTestFixture, DEXTest)
     run<DEXInstruction>(AddressingMode::IMP, 2, expected);
 }
 
+TEST_F(InstructionTestFixture, BEQTest)
+{
+    load(0xFF00, {5});
+    auto expected = registers;
+    expected.p.z = false;
+    expected.pc += 2;
+    run<BEQInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {5});
+    registers.p.z = true;
+    expected = registers;
+    expected.pc = 0xFF05;
+    run<BEQInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {(uint8_t)-1});
+    expected = registers;
+    expected.pc = 0xFEFF;
+    run<BEQInstruction>(AddressingMode::REL, 4, expected);
+}
+
 TEST_F(InstructionTestFixture, BNETest)
 {
-    FAIL() << "Not yet implemented";
+    load(0xFF00, {5});
+    registers.p.z = true;
+    auto expected = registers;
+    expected.pc += 2;
+    run<BNEInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {5});
+    registers.p.z = false;
+    expected = registers;
+    expected.pc = 0xFF05;
+    run<BNEInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {(uint8_t)-1});
+    expected = registers;
+    expected.pc = 0xFEFF;
+    run<BNEInstruction>(AddressingMode::REL, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, BCCTest)
+{
+    load(0xFF00, {5});
+    registers.p.c = true;
+    auto expected = registers;
+    expected.pc += 2;
+    run<BCCInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {5});
+    registers.p.c = false;
+    expected = registers;
+    expected.pc = 0xFF05;
+    run<BCCInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {(uint8_t)-1});
+    expected = registers;
+    expected.pc = 0xFEFF;
+    run<BCCInstruction>(AddressingMode::REL, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, BCSTest)
+{
+    load(0xFF00, {5});
+    auto expected = registers;
+    expected.p.c = false;
+    expected.pc += 2;
+    run<BCSInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {5});
+    registers.p.c = true;
+    expected = registers;
+    expected.pc = 0xFF05;
+    run<BCSInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {(uint8_t)-1});
+    expected = registers;
+    expected.pc = 0xFEFF;
+    run<BCSInstruction>(AddressingMode::REL, 4, expected);
+}
+
+TEST_F(InstructionTestFixture, BVSTest)
+{
+    load(0xFF00, {5});
+    registers.p.v = false;
+    auto expected = registers;
+    expected.pc += 2;
+    run<BVSInstruction>(AddressingMode::REL, 2, expected);
+
+    load(0xFF00, {5});
+    registers.p.v = true;
+    expected = registers;
+    expected.pc = 0xFF05;
+    run<BVSInstruction>(AddressingMode::REL, 3, expected);
+
+    load(0xFF00, {(uint8_t)-1});
+    expected = registers;
+    expected.pc = 0xFEFF;
+    run<BVSInstruction>(AddressingMode::REL, 4, expected);
 }
 
 TEST_F(InstructionTestFixture, INCZeroPageTest)
@@ -3223,11 +3303,6 @@ TEST_F(InstructionTestFixture, INXTest)
     expected.p.z = true;
     expected.pc++;
     run<INXInstruction>(AddressingMode::IMP, 2, expected);
-}
-
-TEST_F(InstructionTestFixture, BEQTest)
-{
-    FAIL() << "Not yet implemented";
 }
 
 TEST_F(InstructionTestFixture, SEDTest)

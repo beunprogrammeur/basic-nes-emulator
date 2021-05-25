@@ -185,6 +185,26 @@ namespace nes::cpu::instructions
         setNZ(registers, reg - memory);
     }
 
+    uint8_t BaseInstruction::branch(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus, bool doBranch)
+    {
+        uint8_t ticks = 2;
+
+        if(doBranch)
+        {
+            ticks++;
+
+            int8_t offset = static_cast<int8_t>(bus.read(registers.pc + 1));
+            uint16_t page = registers.pc  & 0xff00;
+            registers.pc += offset;
+            ticks += page != (registers.pc & 0xff00);
+        }
+        else
+        {
+            registers.pc += 2;
+        }
+
+        return ticks;
+    }
 
     uint8_t BaseInstruction::ABS(nes::cpu::Registers&   registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABS);   return 0; }
     uint8_t BaseInstruction::ABSX(nes::cpu::Registers&  registers, nes::cpu::bus::IBus& bus) { _handler.invalidMode(*this, AddressingMode::ABSX);  return 0; }

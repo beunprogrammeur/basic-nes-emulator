@@ -867,7 +867,10 @@ uint8_t PLAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // BVS
 //
 
-uint8_t BVSInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BVSInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    return branch(registers, bus, registers.p.v);
+}
 
 //
 // SEI
@@ -989,7 +992,10 @@ uint8_t TXAInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // BCC
 //
 
-uint8_t BCCInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BCCInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    return branch(registers, bus, !registers.p.c);
+}
 
 //
 // TYA
@@ -1155,7 +1161,10 @@ uint8_t TAXInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // BCS
 //
 
-uint8_t BCSInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BCSInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    return branch(registers, bus, registers.p.c);
+}
 
 //
 // CLV
@@ -1352,7 +1361,10 @@ uint8_t DEXInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // BNE
 //
 
-uint8_t BNEInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BNEInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    return branch(registers, bus, !registers.p.z);
+}
 
 //
 // CLD
@@ -1532,7 +1544,10 @@ uint8_t NOPInstruction::IMP(nes::cpu::Registers& registers, nes::cpu::bus::IBus&
 // BEQ
 //
 
-uint8_t BEQInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus) { return 0; }       
+uint8_t BEQInstruction::REL(nes::cpu::Registers& registers, nes::cpu::bus::IBus& bus)
+{
+    return branch(registers, bus, registers.p.z);
+}
 
 //
 // SED
