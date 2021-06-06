@@ -58,8 +58,6 @@ protected:
         bus     = new MockBus;
 
         registers.reset();
-
-        hex(0x1234);
     }
 
     void TearDown() override
